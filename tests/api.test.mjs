@@ -98,7 +98,11 @@ assert.equal((await call('/api/checkin','POST',{action:'create',title:'Timed',fo
 assert.equal((await call('/api/checkin','POST',{action:'create',title:'Timed',format:'single',minutes:0},cookie)).status,400);
 assert.equal((await call('/api/checkin','POST',{action:'create',title:'Timed',format:'single',minutes:1},cookie)).status,201);
 let state=await(await call('/api/tournament','GET',null,cookie)).json(),windowId=state.checkin.id;
-assert.equal(state.checkin.status,'open');assert.equal(state.checkin.count,0);
+assert.equal(state.checkin.status,'open');assert.equal(state.checkin.count,0);assert.equal(state.checkin.showCapacity,undefined);
+assert.equal((await call('/api/checkin','PATCH',{windowId,showCapacity:false},memberCookie)).status,403);
+assert.equal((await call('/api/checkin','PATCH',{windowId:'outdated',showCapacity:false},cookie)).status,409);
+assert.equal((await call('/api/checkin','PATCH',{windowId,showCapacity:false},cookie)).status,200);
+state=await(await call('/api/tournament','GET',null,memberCookie)).json();assert.equal(state.checkin.showCapacity,false);
 assert.equal((await call('/api/checkin','POST',{action:'create',title:'Second',format:'single',minutes:1},cookie)).status,409);
 assert.equal((await call('/api/tournament','PUT',{revision:state.revision,tournament:state.tournament},cookie)).status,409);
 assert.equal((await call('/api/checkin','POST',{windowId})).status,401);
