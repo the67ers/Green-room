@@ -1,1 +1,33 @@
-# Green-room
+# Greenroom tournament brackets
+
+A green HTML/JavaScript bracket manager with server-enforced viewer and admin roles, backed by Sites D1 storage. The existing Site keeps its project identity and access policy.
+
+## Features
+
+- Classic, two-sided, four-region, and round-robin tournaments for up to 100 players (four regions requires four players).
+- Elimination brackets handle byes, winner advancement, corrections, undo, and champions.
+- Round robin schedules each pairing once, supports chess draws, and calculates standings and shared titles.
+- Viewers can inspect brackets, search players, filter rounds, and change display modes. Admins enter a server-configured password to create tournaments, import backups, and edit results.
+- Admin sessions use expiring HttpOnly cookies. Every write checks the session and request origin. Password attempts are rate-limited.
+- One shared current tournament is saved in D1. Viewers refresh automatically every five seconds while the page is visible. Revision checks prevent competing admins from overwriting each other.
+- Legacy browser tournaments can be explicitly restored by an admin using Export → Restore previous browser tournament.
+
+## Structure
+
+`frontend/index.html` contains the original HTML/CSS/JS app. `app/route.ts` serves it. API routes live in `app/api/`; `lib/tournament.js` shares the bracket engine with the server. Database tables and immutable migrations live in `db/` and `drizzle/`.
+
+Configure `ADMIN_PASSWORD` as a Sites secret. For local preview only, place a test value in ignored `.dev.vars`. Never commit a real password.
+
+Use the Sites skill for dependency installation, managed preview, builds, and deployment. Apply migrations to the local preview database as described in the starter tooling. Hosted migrations run during publication.
+
+## Checks
+
+```sh
+node tests/engine.test.cjs
+node tests/api.test.mjs
+node node_modules/typescript/bin/tsc --noEmit
+```
+
+The engine checks all supported player counts. API tests use an isolated Miniflare/D1 environment, never the hosted Site. They verify auth, shared persistence, write protection, conflicts, sign-out, and rate limits.
+
+The hosted app requires its server for shared storage and admin protection. JSON tournament backups remain downloadable; a standalone HTML download does not include the server.
