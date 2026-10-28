@@ -20,7 +20,7 @@ export async function PUT(request: Request) {
     const update=db.prepare('UPDATE tournaments SET data = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? RETURNING revision').bind(JSON.stringify(data),Date.now(),'main',body.revision);
     if(body.archiveCurrent===true){
       const batch=await db.batch<{revision:number}>([
-        db.prepare('INSERT INTO tournament_history (id,data,archived_at) SELECT ?,data,? FROM tournaments WHERE id = ? AND revision = ?').bind(crypto.randomUUID(),Date.now(),'main',body.revision),update
+        db.prepare("INSERT INTO tournament_history (id,data,archived_at) SELECT ?,data,? FROM tournaments WHERE id = ? AND revision = ? AND data <> 'null'").bind(crypto.randomUUID(),Date.now(),'main',body.revision),update
       ]);
       row=batch[1].results[0]||null;
     }else row=await update.first<{revision:number}>();
@@ -28,4 +28,22 @@ export async function PUT(request: Request) {
   if(!row)return json({error:'Another admin updated the tournament. The latest version has been loaded; please try your edit again.'},409);
   await db.prepare("UPDATE checkin_windows SET status='cancelled' WHERE id='main' AND status<>'open'").run();
   return json({tournament:data,revision:row.revision,admin:true});
+}
+
+export async function DELETE(request:Request){
+  if(!sameOrigin(request))return json({error:'Invalid origin.'},403);
+  if(!await isAdmin(request))return json({error:'Admin access is required.'},403);
+  let body;try{body=await readJson(request,2000);}catch{return json({error:'Choose the current tournament.'},400);}
+  if(!Number.isSafeInteger(body.revision)||body.revision<0)return json({error:'Invalid tournament revision.'},400);
+  const db=database(),current=await db.prepare("SELECT revision FROM tournaments WHERE id='main'").first<{revision:number}>();
+  if((current?.revision||0)!==body.revision)return json({error:'The tournament changed. Refresh and try again.'},409);
+  const checkin=await checkinState();
+  if((checkin?.id||null)!==(body.checkinId||null))return json({error:'Check-in changed. Refresh and try again.'},409);
+  const results=await db.batch([
+    db.prepare("INSERT INTO tournament_history (id,data,archived_at) SELECT ?,data,? FROM tournaments WHERE id='main' AND revision=? AND data <> 'null'").bind(crypto.randomUUID(),Date.now(),body.revision),
+    db.prepare("UPDATE tournaments SET data='null', revision=revision+1 WHERE id='main' AND revision=?").bind(body.revision),
+    db.prepare("UPDATE checkin_windows SET status='cancelled' WHERE id='main' AND generation=? AND (NOT EXISTS(SELECT 1 FROM tournaments WHERE id='main') OR EXISTS(SELECT 1 FROM tournaments WHERE id='main' AND revision=? AND data='null'))").bind(checkin?.id||'',body.revision+1),
+  ]);
+  if(current&&!results[1].meta.changes)return json({error:'The tournament changed. Refresh and try again.'},409);
+  return json({success:true});
 }

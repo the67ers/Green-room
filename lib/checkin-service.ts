@@ -11,7 +11,7 @@ export async function finalizeCheckin(){
   const t=new Tournament(entries.results.map(e=>e.name),config.title,config.random,config.format);
   const condition="EXISTS(SELECT 1 FROM checkin_windows WHERE id='main' AND generation=? AND status='open')";
   await db.batch([
-    db.prepare(`INSERT INTO tournament_history (id,data,archived_at) SELECT ?,data,? FROM tournaments WHERE id='main' AND ${condition}`).bind(crypto.randomUUID(),Date.now(),window.generation),
+    db.prepare(`INSERT INTO tournament_history (id,data,archived_at) SELECT ?,data,? FROM tournaments WHERE id='main' AND data <> 'null' AND ${condition}`).bind(crypto.randomUUID(),Date.now(),window.generation),
     db.prepare(`INSERT INTO tournaments (id,data,revision,updated_at) SELECT 'main',?,1,? WHERE ${condition} ON CONFLICT(id) DO UPDATE SET data=excluded.data,revision=tournaments.revision+1,updated_at=excluded.updated_at`).bind(JSON.stringify(t.data()),Date.now(),window.generation),
     db.prepare("UPDATE checkin_windows SET status='closed' WHERE id='main' AND generation=? AND status='open'").bind(window.generation),
   ]);

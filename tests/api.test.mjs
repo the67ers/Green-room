@@ -125,6 +125,25 @@ state=await(await call('/api/tournament','GET',null,cookie)).json();assert.equal
 await db.prepare("UPDATE checkin_windows SET closes_at=? WHERE id='main'").bind(Date.now()-2000).run();
 state=await(await call('/api/tournament','GET',null,cookie)).json();assert.equal(state.tournament.players.length,100);assert.equal(state.checkin.status,'closed');
 console.log('PASS: server deadline, authenticated check-in, duplicates, capacity under concurrency, automatic immutable seeding, insufficient players, and admin cancellation.');
+
+// Cancellation preserves history and monotonic revisions, and stops check-in.
+let cancelState=await(await call('/api/tournament','GET',null,cookie)).json();
+assert.equal((await call('/api/tournament','DELETE',{revision:cancelState.revision,checkinId:cancelState.checkin.id})).status,403);
+assert.equal((await call('/api/tournament','DELETE',{revision:cancelState.revision,checkinId:cancelState.checkin.id},memberCookie)).status,403);
+assert.equal((await call('/api/tournament','DELETE',{revision:cancelState.revision,checkinId:cancelState.checkin.id},cookie,{Origin:'https://evil.example'})).status,403);
+assert.equal((await call('/api/tournament','DELETE',{revision:cancelState.revision-1,checkinId:cancelState.checkin.id},cookie)).status,409);
+assert.equal((await call('/api/tournament','DELETE',{revision:cancelState.revision,checkinId:cancelState.checkin.id},cookie)).status,200);
+let emptyState=await(await call('/api/tournament','GET',null,cookie)).json();assert.equal(emptyState.tournament,null);assert.equal(emptyState.checkin,null);assert.equal(emptyState.revision,cancelState.revision+1);
+let archives=await(await call('/api/history','GET',null,cookie)).json();assert(archives.tournaments.some(t=>t.title==='Capacity'));
+assert.equal((await call('/api/tournament','PUT',{revision:cancelState.revision,tournament:cancelState.tournament},cookie)).status,409);
+let restarted=await call('/api/tournament','PUT',{revision:emptyState.revision,tournament:next,archiveCurrent:true},cookie);assert.equal(restarted.status,200);
+assert.equal((await(await call('/api/history','GET',null,cookie)).json()).tournaments.length,archives.tournaments.length);
+assert.equal((await call('/api/checkin','POST',{action:'create',title:'Cancel pending',format:'single',minutes:1},cookie)).status,201);
+cancelState=await(await call('/api/tournament','GET',null,cookie)).json();const cancelledWindow=cancelState.checkin.id;
+assert.equal((await call('/api/tournament','DELETE',{revision:cancelState.revision,checkinId:cancelledWindow},cookie)).status,200);
+assert.equal((await call('/api/checkin','POST',{windowId:cancelledWindow},memberCookie)).status,409);
+emptyState=await(await call('/api/tournament','GET',null,cookie)).json();assert.equal(emptyState.tournament,null);assert.equal(emptyState.checkin,null);
+console.log('PASS: cancellation authorization, CSRF, stale revisions, history preservation, empty state, recreation, and closing pending entry.');
 assert.equal((await call('/api/admin','DELETE',null,cookie)).status,200);
 assert.equal((await call('/api/tournament','PUT',{revision:initial.revision,tournament:initial.tournament},cookie)).status,401);
 const attacker={'cf-connecting-ip':'198.51.100.2'};

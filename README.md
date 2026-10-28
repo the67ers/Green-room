@@ -55,3 +55,7 @@ Account changes and backup imports use themed confirmation dialogs with cancel, 
 ## Timed check-in
 
 Admins can choose timed check-in instead of entering a manual lineup. The duration is 1–1,440 minutes. Signed-in members check in once per window, up to 100 entrants. The server enforces the deadline and capacity; browser clocks cannot extend entry. On the first request after the deadline (active pages poll every five seconds), the server generates the bracket exactly once from the frozen list and archives the previous tournament atomically. Four-region tournaments need four entrants; other formats need two. An insufficient window closes without replacing the previous bracket. Admins can cancel open check-in and create a replacement event.
+
+## Cancellation and no live tournament
+
+Admins can cancel the live tournament through a themed confirmation dialog. Cancellation archives its current bracket and results, ends associated check-in, and makes the public current-tournament response null. An empty revision marker remains so outdated browser tabs cannot overwrite a later tournament. With no active tournament or open check-in, the interface displays No tournament at this moment instead of demo brackets, sample players, or statistics.
