@@ -103,6 +103,8 @@ assert.equal((await call('/api/checkin','PATCH',{windowId,showCapacity:false},me
 assert.equal((await call('/api/checkin','PATCH',{windowId:'outdated',showCapacity:false},cookie)).status,409);
 assert.equal((await call('/api/checkin','PATCH',{windowId,showCapacity:false},cookie)).status,200);
 state=await(await call('/api/tournament','GET',null,memberCookie)).json();assert.equal(state.checkin.showCapacity,false);
+assert.equal((await call('/api/checkin','POST',{action:'start',windowId},memberCookie)).status,403);
+assert.equal((await call('/api/checkin','POST',{action:'start',windowId},cookie)).status,409);
 assert.equal((await call('/api/checkin','POST',{action:'create',title:'Second',format:'single',minutes:1},cookie)).status,409);
 assert.equal((await call('/api/tournament','PUT',{revision:state.revision,tournament:state.tournament},cookie)).status,409);
 assert.equal((await call('/api/checkin','POST',{windowId})).status,401);
@@ -111,7 +113,8 @@ assert.equal((await call('/api/checkin','POST',{windowId},memberCookie)).status,
 assert.equal((await call('/api/checkin','POST',{windowId},memberCookie)).status,409);
 assert.equal((await call('/api/checkin','POST',{windowId},cookie)).status,200);
 state=await(await call('/api/tournament','GET',null,memberCookie)).json();assert.equal(state.checkin.count,2);assert.equal(state.checkin.checkedIn,true);
-await db.prepare("UPDATE checkin_windows SET closes_at=? WHERE id='main'").bind(Date.now()-2000).run();
+assert.equal((await call('/api/checkin','POST',{action:'start',windowId:'stale'},cookie)).status,409);
+assert.equal((await call('/api/checkin','POST',{action:'start',windowId},cookie)).status,200);
 assert.equal((await call('/api/checkin','POST',{windowId},memberCookie)).status,409);
 let finalized=await(await call('/api/tournament','GET',null,cookie)).json();assert.equal(finalized.checkin.status,'closed');assert.equal(finalized.tournament.title,'Timed');assert.equal(finalized.tournament.players.length,2);
 const fixed=JSON.stringify(finalized.tournament);assert.equal(JSON.stringify((await(await call('/api/tournament','GET',null,cookie)).json()).tournament),fixed);

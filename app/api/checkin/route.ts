@@ -6,6 +6,17 @@ export async function POST(request:Request){
   const user=await currentUser(request);if(!user)return json({error:'Sign in to check in.'},401);
   let body;try{body=await readJson(request,3000);}catch{return json({error:'Invalid check-in request.'},400);}
   await finalizeCheckin();const db=database();
+  if(body.action==='start'){
+    if(user.role!=='admin')return json({error:'Admin access is required.'},403);
+    if(typeof body.windowId!=='string')return json({error:'Choose the current check-in window.'},400);
+    const window=await db.prepare("SELECT config FROM checkin_windows WHERE id='main' AND generation=? AND status='open'").bind(body.windowId).first<{config:string}>();
+    if(!window)return json({error:'Check-in is no longer open.'},409);
+    const minimum=JSON.parse(window.config).format==='four'?4:2;
+    const row=await db.prepare(`UPDATE checkin_windows SET closes_at=${sqlNow} WHERE id='main' AND generation=? AND status='open' AND (SELECT count(*) FROM checkin_entries WHERE window_id=?)>=? RETURNING generation`).bind(body.windowId,body.windowId,minimum).first();
+    if(!row)return json({error:`At least ${minimum} checked-in players are needed to start.`},409);
+    await finalizeCheckin();
+    return json({checkin:await checkinState(user.id)});
+  }
   if(body.action==='create'){
     if(user.role!=='admin')return json({error:'Admin access is required.'},403);
     if(typeof body.title!=='string'||!body.title.trim()||!['single','two','four','robin'].includes(body.format)||!Number.isInteger(body.minutes)||body.minutes<1||body.minutes>1440)return json({error:'Choose a name, format, and a check-in time between 1 and 1,440 minutes.'},400);
