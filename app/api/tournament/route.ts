@@ -11,9 +11,17 @@ export async function PUT(request: Request) {
   let body,data;
   try{body=await readJson(request);if(!Number.isSafeInteger(body.revision)||body.revision<0)throw new Error('Invalid tournament revision.');data=validateTournament(body.tournament);}catch(error){return json({error:error instanceof Error?error.message:'Invalid tournament.'},400);}
   const db=database();
-  const row=body.revision===0
-    ?await db.prepare('INSERT INTO tournaments (id,data,revision,updated_at) VALUES (?,?,1,?) ON CONFLICT(id) DO NOTHING RETURNING revision').bind('main',JSON.stringify(data),Date.now()).first<{revision:number}>()
-    :await db.prepare('UPDATE tournaments SET data = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? RETURNING revision').bind(JSON.stringify(data),Date.now(),'main',body.revision).first<{revision:number}>();
+  let row:{revision:number}|null=null;
+  if(body.revision===0){row=await db.prepare('INSERT INTO tournaments (id,data,revision,updated_at) VALUES (?,?,1,?) ON CONFLICT(id) DO NOTHING RETURNING revision').bind('main',JSON.stringify(data),Date.now()).first<{revision:number}>();}
+  else {
+    const update=db.prepare('UPDATE tournaments SET data = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? RETURNING revision').bind(JSON.stringify(data),Date.now(),'main',body.revision);
+    if(body.archiveCurrent===true){
+      const batch=await db.batch<{revision:number}>([
+        db.prepare('INSERT INTO tournament_history (id,data,archived_at) SELECT ?,data,? FROM tournaments WHERE id = ? AND revision = ?').bind(crypto.randomUUID(),Date.now(),'main',body.revision),update
+      ]);
+      row=batch[1].results[0]||null;
+    }else row=await update.first<{revision:number}>();
+  }
   if(!row)return json({error:'Another admin updated the tournament. The latest version has been loaded; please try your edit again.'},409);
   return json({tournament:data,revision:row.revision,admin:true});
 }

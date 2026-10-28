@@ -12,6 +12,8 @@ assert.equal((await proxyBackend(new Request(url,{method:'POST',headers:{origin:
 const response=await proxyBackend(new Request(url,{method:'POST',headers:{origin:'https://greenroom.example','content-type':'application/json',cookie:session+'; platform_secret=excluded'},body:'{"username":"admin","password":"test"}'}),'admin');
 assert.equal(response.status,200);assert.equal(captured.headers.get('origin'),'https://backend.example');assert.equal(captured.headers.get('cookie'),session);assert.equal(captured.headers.get('OAI-Sites-Authorization'),'Bearer test-secret');assert.match(response.headers.get('set-cookie'),/HttpOnly/);
 assert.equal((await proxyBackend(new Request(url,{method:'PATCH'}),'admin')).status,405);
+assert.equal((await proxyBackend(new Request('https://greenroom.example/api/history?id=archive-1'),'history')).status,200);assert.equal(captured.url,'https://backend.example/api/history?id=archive-1');
+assert.equal((await proxyBackend(new Request('https://greenroom.example/api/history',{method:'POST'}),'history')).status,405);
 delete process.env.GREENROOM_BACKEND_TOKEN;
 assert.equal((await proxyBackend(new Request(url),'admin')).status,503);
 console.log('PASS: Vercel proxy methods, CSRF, session filtering, server-only credentials, and missing configuration.');

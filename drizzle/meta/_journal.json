@@ -15,6 +15,13 @@
       "when": 1793151294949,
       "tag": "0001_simple_sandman",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793152265526,
+      "tag": "0002_little_metal_master",
+      "breakpoints": true
     }
   ]
 }

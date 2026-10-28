@@ -26,6 +26,21 @@ for(const format of ['single','two','four','robin']){
  const view=await(await call('/api/tournament')).json();assert.equal(view.admin,false);assert.equal(view.revision,initial.revision);assert.deepEqual(view.tournament,t.data());
 }
 
+// History stores exactly the prior snapshot when a new tournament replaces it.
+assert.equal((await call('/api/history')).status,403);
+assert.equal((await(await call('/api/history','GET',null,cookie)).json()).tournaments.length,0);
+const previous=initial.tournament,next=new Tournament(['One','Two','Three'],'Next tournament').data();
+let replaced=await call('/api/tournament','PUT',{revision:initial.revision,tournament:next,archiveCurrent:true},cookie);assert.equal(replaced.status,200);initial=await replaced.json();
+let historyList=await(await call('/api/history','GET',null,cookie)).json();assert.equal(historyList.tournaments.length,1);const archiveId=historyList.tournaments[0].id;
+assert.deepEqual((await(await call('/api/history?id='+archiveId,'GET',null,cookie)).json()).tournament,previous);
+assert.equal((await call('/api/tournament','PUT',{revision:initial.revision-1,tournament:previous,archiveCurrent:true},cookie)).status,409);
+assert.equal((await(await call('/api/history','GET',null,cookie)).json()).tournaments.length,1);
+assert.equal((await call('/api/history?id=missing','GET',null,cookie)).status,404);
+let edited=Tournament.restore(initial.tournament),ready=edited.rounds().flat().find(m=>m.ready);edited.choose(ready.r,ready.m,ready.a.id);
+let editResponse=await call('/api/tournament','PUT',{revision:initial.revision,tournament:edited.data()},cookie);assert.equal(editResponse.status,200);initial=await editResponse.json();
+assert.equal((await(await call('/api/history','GET',null,cookie)).json()).tournaments.length,1);
+assert.deepEqual((await(await call('/api/history?id='+archiveId,'GET',null,cookie)).json()).tournament,previous);
+console.log('PASS: automatic archive on replacement, preserved snapshot, no archives for normal edits or stale writes, admin-only history.');
 // Account management and authorization, isolated from the hosted database.
 assert.equal((await call('/api/accounts')).status,403);
 assert.equal((await call('/api/admin','POST',{username:'',password})).status,401);
@@ -34,12 +49,13 @@ assert.equal((await call('/api/accounts','POST',{username:'admin',password:'read
 assert.equal((await call('/api/accounts','POST',{username:'reader',password:'short',role:'viewer'},cookie)).status,400);
 assert.equal((await call('/api/accounts','POST',{username:'Reader',password:'reader-password',role:'viewer'},cookie)).status,201);
 assert.equal((await call('/api/accounts','POST',{username:'READER',password:'reader-password',role:'admin'},cookie)).status,409);
-let list=await(await call('/api/accounts','GET',null,cookie)).json(),reader=list.accounts.find(a=>a.username==='reader');assert(reader);assert(!JSON.stringify(list).includes('password_hash'));assert(!JSON.stringify(list).includes('reader-password'));
+let list=await(await call('/api/accounts','GET',null,cookie)).json(),reader=list.accounts.find(a=>a.username==='Reader');assert(reader);assert(!JSON.stringify(list).includes('password_hash'));assert(!JSON.stringify(list).includes('reader-password'));
 let stored=await db.prepare('SELECT password_hash,salt FROM accounts WHERE id = ?').bind(reader.id).first();assert.equal(stored.password_hash.length,64);assert.notEqual(stored.password_hash,'reader-password');assert.equal(stored.salt.length,64);
 async function login(username,password){let response=await call('/api/admin','POST',{username,password});assert.equal(response.status,200);return response.headers.get('set-cookie').split(';')[0];}
-let readerCookie=await login('reader','reader-password');let readerState=await(await call('/api/tournament','GET',null,readerCookie)).json();assert.equal(readerState.admin,false);assert.equal(readerState.user.username,'reader');
+let readerCookie=await login('reader','reader-password');let readerState=await(await call('/api/tournament','GET',null,readerCookie)).json();assert.equal(readerState.admin,false);assert.equal(readerState.user.username,'Reader');
 assert.equal((await call('/api/tournament','PUT',{revision:initial.revision,tournament:initial.tournament},readerCookie)).status,401);
 assert.equal((await call('/api/accounts','GET',null,readerCookie)).status,403);
+assert.equal((await call('/api/history','GET',null,readerCookie)).status,403);
 assert.equal((await call('/api/accounts','POST',{username:'intruder',password:'reader-password',role:'admin'},readerCookie)).status,403);
 assert.equal((await call('/api/accounts','PATCH',{id:'system-admin',disabled:true},cookie)).status,403);
 assert.equal((await call('/api/accounts','DELETE',{id:'system-admin'},cookie)).status,403);
@@ -58,6 +74,18 @@ readerCookie=await login('reader','replacement-password');assert.equal((await(aw
 assert.equal((await call('/api/accounts','GET',null,readerCookie)).status,200);
 assert.equal((await call('/api/accounts','PATCH',{id:reader.id,role:'viewer'},readerCookie)).status,400);
 assert.equal((await call('/api/accounts','POST',{username:'helper',password:'helper-password',role:'viewer'},readerCookie)).status,201);
+assert.equal((await call('/api/accounts','POST',{username:'UnauthorizedAdmin',password:'another-password',role:'admin'},readerCookie)).status,403);
+list=await(await call('/api/accounts','GET',null,cookie)).json();const helper=list.accounts.find(a=>a.username==='helper');
+assert.equal((await call('/api/accounts','PATCH',{id:helper.id,role:'admin'},readerCookie)).status,403);
+assert.equal((await call('/api/accounts','POST',{username:'PeerAdmin',password:'another-password',role:'admin'},cookie)).status,201);
+list=await(await call('/api/accounts','GET',null,cookie)).json();const peer=list.accounts.find(a=>a.username==='PeerAdmin');
+for(const change of [{password:'hijack-password'},{disabled:true},{role:'viewer'}])assert.equal((await call('/api/accounts','PATCH',{id:peer.id,...change},readerCookie)).status,403);
+assert.equal((await call('/api/accounts','DELETE',{id:peer.id},readerCookie)).status,403);
+assert.equal((await call('/api/accounts','PATCH',{id:reader.id,username:'ReAdEr'},cookie)).status,200);
+list=await(await call('/api/accounts','GET',null,cookie)).json();assert.equal(list.accounts.find(a=>a.id===reader.id).username,'ReAdEr');
+const capitalCookie=await login('READER','replacement-password');assert.equal((await(await call('/api/admin','GET',null,capitalCookie)).json()).user.username,'ReAdEr');
+assert.equal((await call('/api/accounts','PATCH',{id:reader.id,username:'PEERADMIN'},cookie)).status,409);
+console.log('PASS: capitalization preserved, case-insensitive sign-in and uniqueness, root-only admin assignment and protected peer-admin access.');
 assert.equal((await call('/api/accounts','DELETE',{id:reader.id},cookie)).status,200);
 assert.equal((await(await call('/api/admin','GET',null,readerCookie)).json()).user,null);
 assert.equal((await call('/api/admin','POST',{username:'reader',password:'replacement-password'})).status,401);

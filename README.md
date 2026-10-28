@@ -42,6 +42,12 @@ Run `node scripts/build-vercel.mjs` and `node tests/vercel.test.mjs` to check th
 
 ## Account management
 
-Signed-in admins can open Accounts to create viewer or admin logins, change roles, enable/disable accounts, reset passwords, and delete accounts. Usernames are case-insensitive and unique. Passwords are stored as salted PBKDF2-SHA256 hashes, not plaintext. Resets, role changes, disabling, and deletion revoke the account's sessions. The original environment-configured admin account remains protected; other admins cannot change their own account from this screen.
+Signed-in admins can open Accounts to create viewer logins, enable/disable viewers, reset viewer passwords, edit usernames, and delete viewer accounts. Only the original protected admin can create admin accounts, assign roles, or manage other admins. Usernames preserve capitalization for display and use case-insensitive sign-in and uniqueness. Passwords are stored as salted PBKDF2-SHA256 hashes, not plaintext. Resets, role changes, disabling, and deletion revoke the account's sessions. The original environment-configured admin account remains protected; other admins cannot change their own account from this screen.
 
 The Vercel `api/accounts.js` gateway forwards requests to the existing backend, which authorizes every operation. Account records, hashes, salts, and sessions are never included in the public source repository. Accounts are separate from bracket entrants: making a login does not add a player to a tournament.
+
+## Past tournaments and confirmations
+
+Past tournaments is an admin-only tab beside Tournament. Generating a replacement bracket or importing/restoring a backup archives the previous shared bracket in the same transaction as the replacement. Winner selections and undo do not create archive entries. Archives are immutable, retain the exact bracket and results as saved, and are shown in a read-only match list. History begins with replacements made after this update; earlier overwritten data is not reconstructed.
+
+Account changes and backup imports use themed confirmation dialogs with cancel, Escape dismissal, and explicit action labels. The original admin's header badge is simply Admin; Accounts has its own navigation icon and remains accessible on mobile.

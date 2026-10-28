@@ -26,7 +26,7 @@ export async function currentUser(request: Request): Promise<AppUser|null> {
   const session=await database().prepare('SELECT account_id FROM admin_sessions WHERE token_hash = ? AND expires_at > ?').bind(await hash(token),Date.now()).first<{account_id:string|null}>();
   if(!session)return null;
   if(!session.account_id)return {id:'system-admin',username:'admin',role:'admin',protected:true};
-  const user=await database().prepare('SELECT id,username,role FROM accounts WHERE id = ? AND disabled = 0').bind(session.account_id).first<{id:string;username:string;role:'admin'|'viewer'}>();
+  const user=await database().prepare('SELECT id,COALESCE(display_username,username) AS username,role FROM accounts WHERE id = ? AND disabled = 0').bind(session.account_id).first<{id:string;username:string;role:'admin'|'viewer'}>();
   return user?{...user,protected:false}:null;
 }
 export async function isAdmin(request: Request) {return (await currentUser(request))?.role==='admin';}

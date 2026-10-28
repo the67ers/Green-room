@@ -19,9 +19,16 @@ export const loginAttempts = sqliteTable('login_attempts', {
 export const accounts = sqliteTable('accounts', {
   id: text('id').primaryKey(),
   username: text('username').notNull().unique(),
+  displayUsername: text('display_username'),
   role: text('role').notNull(),
   disabled: integer('disabled').notNull().default(0),
   passwordHash: text('password_hash').notNull(),
   salt: text('salt').notNull(),
   createdAt: integer('created_at').notNull(),
+});
+
+export const tournamentHistory = sqliteTable('tournament_history', {
+  id: text('id').primaryKey(),
+  data: text('data').notNull(),
+  archivedAt: integer('archived_at').notNull(),
 });
