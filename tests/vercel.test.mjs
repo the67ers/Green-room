@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {proxyBackend} from '../lib/vercel-backend.mjs';
+process.env.GREENROOM_BACKEND_URL='https://backend.example';
+process.env.GREENROOM_BACKEND_TOKEN='test-secret';
+const session='gr_admin='+'a'.repeat(64);
+let captured;
+globalThis.fetch=async(url,options)=>{captured={url:String(url),...options};return new Response('{"admin":true}',{headers:{'content-type':'application/json','set-cookie':session+'; HttpOnly; Secure; Path=/; SameSite=Strict'}});};
+const url='https://greenroom.example/api/admin';
+assert.equal((await proxyBackend(new Request(url,{method:'POST',headers:{origin:'https://evil.example'}}),'admin')).status,403);
+const response=await proxyBackend(new Request(url,{method:'POST',headers:{origin:'https://greenroom.example','content-type':'application/json',cookie:session+'; platform_secret=excluded'},body:'{"password":"test"}'}),'admin');
+assert.equal(response.status,200);assert.equal(captured.headers.get('origin'),'https://backend.example');assert.equal(captured.headers.get('cookie'),session);assert.equal(captured.headers.get('OAI-Sites-Authorization'),'Bearer test-secret');assert.match(response.headers.get('set-cookie'),/HttpOnly/);
+assert.equal((await proxyBackend(new Request(url,{method:'PATCH'}),'admin')).status,405);
+delete process.env.GREENROOM_BACKEND_TOKEN;
+assert.equal((await proxyBackend(new Request(url),'admin')).status,503);
+console.log('PASS: Vercel proxy methods, CSRF, session filtering, server-only credentials, and missing configuration.');

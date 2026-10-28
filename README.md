@@ -31,3 +31,11 @@ node node_modules/typescript/bin/tsc --noEmit
 The engine checks all supported player counts. API tests use an isolated Miniflare/D1 environment, never the hosted Site. They verify auth, shared persistence, write protection, conflicts, sign-out, and rate limits.
 
 The hosted app requires its server for shared storage and admin protection. JSON tournament backups remain downloadable; a standalone HTML download does not include the server.
+
+## Vercel
+
+`vercel.json` selects Other (not Next.js), builds the HTML into `vercel-dist`, and deploys the two standalone API functions in `api/`. The original Sites build remains available separately.
+
+The Vercel functions use the existing Sites tournament backend. Production requires `GREENROOM_BACKEND_URL` and `GREENROOM_BACKEND_TOKEN` configured as sensitive server-only Vercel environment variables. Never commit these values or expose them to the browser. A deployment without these variables loads the interface but its API returns 503 until configured.
+
+Run `node scripts/build-vercel.mjs` and `node tests/vercel.test.mjs` to check the Vercel adapter.
