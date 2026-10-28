@@ -1,8 +1,9 @@
-import { database, isAdmin, json, readJson, sameOrigin, validateTournament } from '../../../lib/tournament-service';
+import { currentUser, database, isAdmin, json, readJson, sameOrigin, validateTournament } from '../../../lib/tournament-service';
 export const dynamic='force-dynamic';
 export async function GET(request: Request) {
   const row=await database().prepare('SELECT data, revision FROM tournaments WHERE id = ?').bind('main').first<{data:string,revision:number}>();
-  return json({tournament:row?JSON.parse(row.data):null,revision:row?.revision||0,admin:await isAdmin(request)});
+  const user=await currentUser(request);
+  return json({user,tournament:row?JSON.parse(row.data):null,revision:row?.revision||0,admin:user?.role==='admin'});
 }
 export async function PUT(request: Request) {
   if(!sameOrigin(request))return json({error:'This request must come from the tournament app.'},403);

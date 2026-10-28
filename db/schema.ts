@@ -8,9 +8,20 @@ export const tournaments = sqliteTable('tournaments', {
 export const adminSessions = sqliteTable('admin_sessions', {
   tokenHash: text('token_hash').primaryKey(),
   expiresAt: integer('expires_at').notNull(),
+  accountId: text('account_id'),
 });
 export const loginAttempts = sqliteTable('login_attempts', {
   key: text('key').primaryKey(),
   count: integer('count').notNull().default(0),
   expiresAt: integer('expires_at').notNull(),
+});
+
+export const accounts = sqliteTable('accounts', {
+  id: text('id').primaryKey(),
+  username: text('username').notNull().unique(),
+  role: text('role').notNull(),
+  disabled: integer('disabled').notNull().default(0),
+  passwordHash: text('password_hash').notNull(),
+  salt: text('salt').notNull(),
+  createdAt: integer('created_at').notNull(),
 });

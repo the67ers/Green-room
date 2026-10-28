@@ -39,3 +39,9 @@ The hosted app requires its server for shared storage and admin protection. JSON
 The Vercel functions use the existing Sites tournament backend. Production requires `GREENROOM_BACKEND_URL` and `GREENROOM_BACKEND_TOKEN` configured as sensitive server-only Vercel environment variables. Never commit these values or expose them to the browser. A deployment without these variables loads the interface but its API returns 503 until configured.
 
 Run `node scripts/build-vercel.mjs` and `node tests/vercel.test.mjs` to check the Vercel adapter.
+
+## Account management
+
+Signed-in admins can open Accounts to create viewer or admin logins, change roles, enable/disable accounts, reset passwords, and delete accounts. Usernames are case-insensitive and unique. Passwords are stored as salted PBKDF2-SHA256 hashes, not plaintext. Resets, role changes, disabling, and deletion revoke the account's sessions. The original environment-configured admin account remains protected; other admins cannot change their own account from this screen.
+
+The Vercel `api/accounts.js` gateway forwards requests to the existing backend, which authorizes every operation. Account records, hashes, salts, and sessions are never included in the public source repository. Accounts are separate from bracket entrants: making a login does not add a player to a tournament.

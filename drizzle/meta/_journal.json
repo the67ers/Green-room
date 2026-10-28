@@ -8,6 +8,13 @@
       "when": 1793120638694,
       "tag": "0000_broken_firebrand",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1793151294949,
+      "tag": "0001_simple_sandman",
+      "breakpoints": true
     }
   ]
 }
