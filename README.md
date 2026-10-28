@@ -51,3 +51,7 @@ The Vercel `api/accounts.js` gateway forwards requests to the existing backend, 
 Past tournaments is an admin-only tab beside Tournament. Generating a replacement bracket or importing/restoring a backup archives the previous shared bracket in the same transaction as the replacement. Winner selections and undo do not create archive entries. Archives are immutable, retain the exact bracket and results as saved, and are shown in a read-only match list. History begins with replacements made after this update; earlier overwritten data is not reconstructed.
 
 Account changes and backup imports use themed confirmation dialogs with cancel, Escape dismissal, and explicit action labels. The original admin's header badge is simply Admin; Accounts has its own navigation icon and remains accessible on mobile.
+
+## Timed check-in
+
+Admins can choose timed check-in instead of entering a manual lineup. The duration is 1–1,440 minutes. Signed-in members check in once per window, up to 100 entrants. The server enforces the deadline and capacity; browser clocks cannot extend entry. On the first request after the deadline (active pages poll every five seconds), the server generates the bracket exactly once from the frozen list and archives the previous tournament atomically. Four-region tournaments need four entrants; other formats need two. An insufficient window closes without replacing the previous bracket. Admins can cancel open check-in and create a replacement event.

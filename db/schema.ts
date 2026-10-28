@@ -32,3 +32,14 @@ export const tournamentHistory = sqliteTable('tournament_history', {
   data: text('data').notNull(),
   archivedAt: integer('archived_at').notNull(),
 });
+
+export const checkinWindows = sqliteTable('checkin_windows', {
+  id: text('id').primaryKey(), generation: text('generation').notNull(),
+  config: text('config').notNull(), closesAt: integer('closes_at').notNull(),
+  status: text('status').notNull(),
+});
+export const checkinEntries = sqliteTable('checkin_entries', {
+  id: text('id').primaryKey(), windowId: text('window_id').notNull(),
+  accountId: text('account_id').notNull(), name: text('name').notNull(),
+  checkedAt: integer('checked_at').notNull(),
+});
