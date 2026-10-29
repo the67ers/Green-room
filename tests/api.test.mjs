@@ -145,6 +145,11 @@ assert.equal((await call('/api/checkin','POST',{action:'start',windowId:'stale'}
 assert.equal((await call('/api/checkin','POST',{action:'start',windowId},cookie)).status,200);
 assert.equal((await call('/api/checkin','POST',{windowId},memberCookie)).status,409);
 let finalized=await(await call('/api/tournament','GET',null,cookie)).json();assert.equal(finalized.checkin.status,'closed');assert.equal(finalized.tournament.title,'Timed');assert.equal(finalized.tournament.players.length,2);
+assert.equal((await call('/api/checkin','PATCH',{windowId,showCapacity:true},memberCookie)).status,403);
+assert.equal((await call('/api/checkin','PATCH',{windowId,showCapacity:true},cookie)).status,200);
+assert.equal((await(await call('/api/tournament')).json()).checkin.showCapacity,true);
+assert.equal((await call('/api/tournament','PUT',{revision:finalized.revision,tournament:finalized.tournament},cookie)).status,200);
+assert.equal((await(await call('/api/tournament')).json()).checkin.status,'closed');
 const fixed=JSON.stringify(finalized.tournament);assert.equal(JSON.stringify((await(await call('/api/tournament','GET',null,cookie)).json()).tournament),fixed);
 assert.equal((await call('/api/checkin','POST',{action:'create',title:'Too few',format:'four',minutes:1},cookie)).status,201);
 await db.prepare("UPDATE checkin_windows SET closes_at=? WHERE id='main'").bind(Date.now()-2000).run();

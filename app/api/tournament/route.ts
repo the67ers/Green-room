@@ -29,7 +29,7 @@ export async function PUT(request: Request) {
     }else row=await update.first<{revision:number}>();
   }
   if(!row)return json({error:'Another admin updated the tournament. The latest version has been loaded; please try your edit again.'},409);
-  await db.prepare("UPDATE checkin_windows SET status='cancelled' WHERE id='main' AND status<>'open'").run();
+  if(body.archiveCurrent===true)await db.prepare("UPDATE checkin_windows SET status='cancelled' WHERE id='main' AND status<>'open'").run();
   return json({tournament:data,revision:row.revision,admin:true});
 }
 
