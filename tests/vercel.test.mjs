@@ -16,5 +16,9 @@ assert.equal((await proxyBackend(new Request('https://greenroom.example/api/hist
 assert.equal((await proxyBackend(new Request('https://greenroom.example/api/history',{method:'POST'}),'history')).status,405);
 assert.equal((await proxyBackend(new Request('https://greenroom.example/api/checkin',{method:'PATCH',headers:{origin:'https://greenroom.example','content-type':'application/json'},body:'{"windowId":"one","showCapacity":false}'}),'checkin')).status,200);assert.equal(captured.method,'PATCH');
 delete process.env.GREENROOM_BACKEND_TOKEN;
+process.env.GREENROOM_BACKEND_TOKEN='test-secret';
+assert.equal((await proxyBackend(new Request('https://greenroom.example/api/signup',{method:'POST',headers:{origin:'https://greenroom.example','content-type':'application/json'},body:'{"username":"Test","email":"test@example.com","password":"test-password"}'}),'signup')).status,200);assert.equal(captured.url,'https://backend.example/api/signup');
+assert.equal((await proxyBackend(new Request('https://greenroom.example/api/signup'),'signup')).status,405);
+delete process.env.GREENROOM_BACKEND_TOKEN;
 assert.equal((await proxyBackend(new Request(url),'admin')).status,503);
 console.log('PASS: Vercel proxy methods, CSRF, session filtering, server-only credentials, and missing configuration.');

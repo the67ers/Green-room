@@ -25,6 +25,7 @@ export const accounts = sqliteTable('accounts', {
   id: text('id').primaryKey(),
   username: text('username').notNull().unique(),
   displayUsername: text('display_username'),
+  email: text('email').unique(),
   role: text('role').notNull(),
   disabled: integer('disabled').notNull().default(0),
   passwordHash: text('password_hash').notNull(),

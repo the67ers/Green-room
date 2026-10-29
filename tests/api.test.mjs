@@ -11,6 +11,20 @@ try {
 const db=await mf.getD1Database('DB');
 for(const name of (await readdir('drizzle')).filter(n=>n.endsWith('.sql')).sort()){const schema=await readFile('drizzle/'+name,'utf8');await db.batch(schema.split('--> statement-breakpoint').map(sql=>db.prepare(sql.trim())));}
 const call=(path,method='GET',data,cookie='',extra={})=>mf.dispatchFetch(origin+path,{method,headers:{Origin:origin,...(data?{'Content-Type':'application/json'}:{}),...(cookie?{Cookie:cookie}:{}),...extra},...(data?{body:JSON.stringify(path==='/api/admin'&&method==='POST'?{username:'admin',...data}:data)}:{})});
+const signupData={username:'NewPlayer',email:'Player@Example.com',password:'signup-password',role:'admin'};
+assert.equal((await call('/api/signup','POST',signupData,'',{Origin:'https://evil.example'})).status,403);
+for(const bad of [{username:'ab'},{email:'wrong'},{password:'short'}])assert.equal((await call('/api/signup','POST',{...signupData,...bad})).status,400);
+assert.equal((await call('/api/signup','POST',{...signupData,username:'AdMiN'})).status,409);
+const signupResponse=await call('/api/signup','POST',signupData);assert.equal(signupResponse.status,201);assert.match(signupResponse.headers.get('set-cookie'),/HttpOnly/);
+const signupCookie=signupResponse.headers.get('set-cookie').split(';')[0];
+const signupUser=await(await call('/api/admin','GET',null,signupCookie)).json();assert.equal(signupUser.admin,false);assert.equal(signupUser.user.username,'NewPlayer');assert.equal(signupUser.user.email,undefined);
+const storedSignup=await db.prepare('SELECT email,role,password_hash FROM accounts WHERE username=?').bind('newplayer').first();assert.equal(storedSignup.email,'player@example.com');assert.equal(storedSignup.role,'viewer');assert.notEqual(storedSignup.password_hash,signupData.password);
+assert.equal((await call('/api/accounts','GET',null,signupCookie)).status,403);
+assert.equal((await call('/api/signup','POST',{...signupData,username:'NEWPLAYER',email:'different@example.com'})).status,409);
+assert.equal((await call('/api/signup','POST',{...signupData,username:'Different',email:'PLAYER@example.com'})).status,409);
+assert.equal((await call('/api/admin','POST',{username:'newplayer',password:signupData.password})).status,200);
+assert.equal((await call('/api/signup','GET')).status,405);
+console.log('PASS: signup validation, reserved admin, normalized unique email/username, hashed passwords, contestant-only role, private email, auto sign-in and regular sign-in.');
 let response=await call('/api/tournament');assert.equal(response.status,200);let initial=await response.json();assert.equal(initial.admin,false);
 assert.equal((await call('/api/tournament','PUT',{revision:initial.revision,tournament:{}})).status,401);
 assert.equal((await call('/api/admin','POST',{password:'wrong'})).status,401);

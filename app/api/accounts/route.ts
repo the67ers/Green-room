@@ -1,6 +1,6 @@
 import { currentUser, database, derivePassword, json, randomHex, readJson, sameOrigin } from '../../../lib/tournament-service';
 export const dynamic='force-dynamic';
-const projection='id,COALESCE(display_username,username) AS username,role,disabled,created_at';
+const projection='id,COALESCE(display_username,username) AS username,email,role,disabled,created_at';
 export async function GET(request:Request){
   const user=await currentUser(request);if(user?.role!=='admin')return json({error:'Admin access is required.'},403);
   const rows=await database().prepare(`SELECT ${projection} FROM accounts ORDER BY username`).all();
