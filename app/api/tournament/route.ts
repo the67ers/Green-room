@@ -1,11 +1,14 @@
 import {finalizeCheckin,checkinState} from '../../../lib/checkin-service';
+import {reportState,reportAction} from '../../../lib/match-report-service';
+export const POST=reportAction;
 import { currentUser, database, isAdmin, json, readJson, sameOrigin, validateTournament } from '../../../lib/tournament-service';
 export const dynamic='force-dynamic';
 export async function GET(request: Request) {
   await finalizeCheckin();
   const row=await database().prepare('SELECT data, revision FROM tournaments WHERE id = ?').bind('main').first<{data:string,revision:number}>();
   const user=await currentUser(request);
-  return json({checkin:await checkinState(user?.id),user,tournament:row?JSON.parse(row.data):null,revision:row?.revision||0,admin:user?.role==='admin'});
+  const t=row?JSON.parse(row.data):null;
+  return json({...t?await reportState(t,row!.revision,user):{playerId:null,reports:[]},checkin:await checkinState(user?.id),user,tournament:t,revision:row?.revision||0,admin:user?.role==='admin'});
 }
 export async function PUT(request: Request) {
   if(!sameOrigin(request))return json({error:'This request must come from the tournament app.'},403);

@@ -7,5 +7,6 @@ export default {async fetch(request: Request){
   const routes: Record<string,(request:Request)=>Promise<Response>> = new URL(request.url).pathname==='/api/admin'
     ? {GET:admin.GET,POST:admin.POST,DELETE:admin.DELETE}
     : new URL(request.url).pathname==='/api/accounts'?{GET:accounts.GET,POST:accounts.POST,PATCH:accounts.PATCH,DELETE:accounts.DELETE}:new URL(request.url).pathname==='/api/checkin'?{POST:checkin.POST,PATCH:checkin.PATCH,DELETE:checkin.DELETE}:new URL(request.url).pathname==='/api/history'?{GET:history.GET}:{GET:tournament.GET,PUT:tournament.PUT,DELETE:tournament.DELETE};
+  if(new URL(request.url).pathname==='/api/tournament'&&request.method==='POST')return tournament.POST(request);
   const handler=routes[request.method];return handler?handler(request):new Response('Method not allowed',{status:405});
 }};

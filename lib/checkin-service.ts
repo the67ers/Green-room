@@ -5,10 +5,11 @@ export const sqlNow="CAST((julianday('now')-2440587.5)*86400000 AS INTEGER)";
 export async function finalizeCheckin(){
   const db=database(),window=await db.prepare("SELECT * FROM checkin_windows WHERE id='main'").first<CheckinWindow>();
   if(!window||window.status!=='open'||window.closes_at>Date.now())return;
-  const entries=await db.prepare('SELECT name FROM checkin_entries WHERE window_id = ? ORDER BY checked_at,id').bind(window.generation).all<{name:string}>();
+  const entries=await db.prepare('SELECT name,account_id FROM checkin_entries WHERE window_id = ? ORDER BY checked_at,id').bind(window.generation).all<{name:string;account_id:string}>();
   const config=JSON.parse(window.config),minimum=config.format==='four'?4:2;
   if(entries.results.length<minimum){await db.prepare("UPDATE checkin_windows SET status='insufficient' WHERE id='main' AND generation=? AND status='open'").bind(window.generation).run();return;}
   const t=new Tournament(entries.results.map(e=>e.name),config.title,config.random,config.format);
+  t.players.forEach(p=>{(p as typeof p & {accountId?:string}).accountId=entries.results.find(e=>e.name===p.name)?.account_id;});
   const condition="EXISTS(SELECT 1 FROM checkin_windows WHERE id='main' AND generation=? AND status='open')";
   await db.batch([
     db.prepare(`INSERT INTO tournament_history (id,data,archived_at) SELECT ?,data,? FROM tournaments WHERE id='main' AND data <> 'null' AND ${condition}`).bind(crypto.randomUUID(),Date.now(),window.generation),

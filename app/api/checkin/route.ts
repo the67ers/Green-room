@@ -19,7 +19,7 @@ export async function POST(request:Request){
   }
   if(body.action==='create'){
     if(user.role!=='admin')return json({error:'Admin access is required.'},403);
-    if(typeof body.title!=='string'||!body.title.trim()||!['single','two','four','robin'].includes(body.format)||!Number.isInteger(body.minutes)||body.minutes<1||body.minutes>1440)return json({error:'Choose a name, format, and a check-in time between 1 and 1,440 minutes.'},400);
+    if(typeof body.title!=='string'||!body.title.trim()||!['single','two','four','robin','swiss'].includes(body.format)||!Number.isInteger(body.minutes)||body.minutes<1||body.minutes>1440)return json({error:'Choose a name, format, and a check-in time between 1 and 1,440 minutes.'},400);
     const generation=crypto.randomUUID(),config=JSON.stringify({title:body.title.trim().slice(0,70),format:body.format,random:body.random!==false});
     const row=await db.prepare("INSERT INTO checkin_windows (id,generation,config,closes_at,status) VALUES ('main',?,?,?,'open') ON CONFLICT(id) DO UPDATE SET generation=excluded.generation,config=excluded.config,closes_at=excluded.closes_at,status='open' WHERE checkin_windows.status<>'open' RETURNING generation").bind(generation,config,Date.now()+body.minutes*60000).first();
     return row?json({checkin:await checkinState(user.id)},201):json({error:'Check-in is already open. Cancel it before creating another tournament.'},409);

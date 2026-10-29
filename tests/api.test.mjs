@@ -94,6 +94,34 @@ console.log('PASS: account creation, hashed passwords, uniqueness, viewer restri
 
 // Timed check-in uses server deadlines and freezes entries before seeding.
 const memberCookie=await login('helper','helper-password');
+// Reporting requires the actual opponent; disputes require an admin decision.
+let reportState=await(await call('/api/tournament','GET',null,cookie)).json();
+const reportingTournament=new Tournament(['admin','helper'],'Reporting',false,'single');
+assert.equal((await call('/api/tournament','PUT',{revision:reportState.revision,tournament:reportingTournament.data(),archiveCurrent:true},cookie)).status,200);
+reportState=await(await call('/api/tournament','GET',null,memberCookie)).json();assert.equal(reportState.playerId,2);
+const reportBody={revision:reportState.revision,matchKey:'0-0',choice:2};
+assert.equal((await call('/api/tournament','POST',{...reportBody,action:'submit'})).status,401);
+assert.equal((await call('/api/tournament','POST',{...reportBody,action:'submit'},memberCookie)).status,200);
+assert.equal((await call('/api/tournament','POST',{...reportBody,action:'confirm'},memberCookie)).status,403);
+assert.equal((await call('/api/tournament','POST',{...reportBody,action:'dispute'},cookie)).status,200);
+assert.equal((await call('/api/tournament','POST',{...reportBody,action:'confirm'},cookie)).status,409);
+assert.equal((await call('/api/tournament','POST',{...reportBody,action:'resolve'},memberCookie)).status,403);
+assert.equal((await call('/api/tournament','POST',{...reportBody,action:'resolve'},cookie)).status,200);
+reportState=await(await call('/api/tournament','GET',null,memberCookie)).json();assert.equal(reportState.tournament.results['0-0'],2);
+assert.equal((await call('/api/tournament','POST',{...reportBody,action:'confirm'},cookie)).status,409);
+console.log('PASS: participant reporting, opponent-only confirmation, disputes, admin resolution and stale report rejection.');
+assert.equal((await call('/api/accounts','POST',{username:'Other',password:'other-password',role:'viewer'},cookie)).status,201);
+const otherCookie=await login('Other','other-password'),peerCookie=await login('PeerAdmin','another-password');
+const parallel=new Tournament(['admin','helper','PeerAdmin','Other'],'Parallel reports',false,'single');
+assert.equal((await call('/api/tournament','PUT',{revision:reportState.revision,tournament:parallel.data(),archiveCurrent:true},cookie)).status,200);
+reportState=await(await call('/api/tournament','GET',null,cookie)).json();
+assert.equal((await call('/api/tournament','POST',{revision:reportState.revision,matchKey:'0-0',choice:1,action:'submit'},cookie)).status,200);
+assert.equal((await call('/api/tournament','POST',{revision:reportState.revision,matchKey:'0-1',choice:2,action:'submit'},memberCookie)).status,200);
+assert.equal((await call('/api/tournament','POST',{revision:reportState.revision,matchKey:'0-0',action:'confirm'},otherCookie)).status,200);
+reportState=await(await call('/api/tournament','GET',null,peerCookie)).json();assert.equal(reportState.reports.length,1);assert.equal(reportState.reports[0].status,'pending');
+assert.equal((await call('/api/tournament','POST',{revision:reportState.revision,matchKey:'0-1',action:'confirm'},peerCookie)).status,200);
+assert.equal((await(await call('/api/tournament')).json()).tournament.results['0-1'],2);
+console.log('PASS: opponent confirmation and preservation of other pending match reports.');
 assert.equal((await call('/api/checkin','POST',{action:'create',title:'Timed',format:'single',minutes:1},memberCookie)).status,403);
 assert.equal((await call('/api/checkin','POST',{action:'create',title:'Timed',format:'single',minutes:0},cookie)).status,400);
 assert.equal((await call('/api/checkin','POST',{action:'create',title:'Timed',format:'single',minutes:1},cookie)).status,201);
