@@ -1,4 +1,5 @@
 import {finalizeCheckin,checkinState} from '../../../lib/checkin-service';
+import {commitElo,hydrateElo,ratings} from '../../../lib/elo-service';
 import {reportState,reportAction} from '../../../lib/match-report-service';
 export const POST=reportAction;
 import { currentUser, database, isAdmin, json, readJson, sameOrigin, validateTournament } from '../../../lib/tournament-service';
@@ -7,8 +8,9 @@ export async function GET(request: Request) {
   await finalizeCheckin();
   const row=await database().prepare('SELECT data, revision FROM tournaments WHERE id = ?').bind('main').first<{data:string,revision:number}>();
   const user=await currentUser(request);
-  const t=row?JSON.parse(row.data):null;
-  return json({...t?await reportState(t,row!.revision,user):{playerId:null,reports:[]},checkin:await checkinState(user?.id),user,tournament:t,revision:row?.revision||0,admin:user?.role==='admin'});
+  const raw=row?JSON.parse(row.data):null,t=raw?.format==='elo'?await hydrateElo(raw):raw;
+  const accountElo=user?(await ratings()).get(user.id)??400:null;
+  return json({...t?await reportState(t,row!.revision,user):{playerId:null,reports:[]},checkin:await checkinState(user?.id),user:user?{...user,elo:accountElo}:null,tournament:t,revision:row?.revision||0,admin:user?.role==='admin'});
 }
 export async function PUT(request: Request) {
   if(!sameOrigin(request))return json({error:'This request must come from the tournament app.'},403);
@@ -17,6 +19,11 @@ export async function PUT(request: Request) {
   let body,data;
   try{body=await readJson(request);if(!Number.isSafeInteger(body.revision)||body.revision<0)throw new Error('Invalid tournament revision.');data=validateTournament(body.tournament);}catch(error){return json({error:error instanceof Error?error.message:'Invalid tournament.'},400);}
   const db=database();
+  if(data.format==='elo'){
+    try{const saved=await commitElo(data,body.revision,body.archiveCurrent===true);if(!saved)return json({error:'The tournament or an account rating changed. Refresh and try again.'},409);if(body.archiveCurrent===true)await db.prepare("UPDATE checkin_windows SET status='cancelled' WHERE id='main' AND status<>'open'").run();return json({...saved,admin:true});}catch(error){return json({error:error instanceof Error?error.message:'Could not save rated results.'},400);}
+  }
+  const rated=await db.prepare("SELECT data FROM tournaments WHERE id='main'").first<{data:string}>();
+  if(rated&&JSON.parse(rated.data)?.format==='elo'&&!body.archiveCurrent)return json({error:'End this Elo tournament before changing its format.'},400);
   let row:{revision:number}|null=null;
   if(body.revision===0){row=await db.prepare('INSERT INTO tournaments (id,data,revision,updated_at) VALUES (?,?,1,?) ON CONFLICT(id) DO NOTHING RETURNING revision').bind('main',JSON.stringify(data),Date.now()).first<{revision:number}>();}
   else {

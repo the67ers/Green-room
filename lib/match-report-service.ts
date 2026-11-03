@@ -1,4 +1,5 @@
 import {Tournament} from './tournament.js';
+import {commitElo} from './elo-service';
 import {currentUser,database,json,readJson,sameOrigin,AppUser} from './tournament-service';
 export function playerFor(t:any,user:AppUser|null){if(!user)return null;const matches=t.players.filter((p:any)=>p.accountId?p.accountId===user.id:p.name.toLowerCase()===user.username.toLowerCase());return matches.length===1?matches[0]:null;}
 export async function reportState(t:any,revision:number,user:AppUser|null){
@@ -17,7 +18,7 @@ export async function reportAction(request:Request){
  const member=me&&[m.a.id,m.b.id].includes(me.id),id=row.revision+':'+m.key;
  if(b.action==='submit'){
   if(!member)return json({error:'Only players in this match can report it.'},403);
-  if(![m.a.id,m.b.id,...(['swiss','robin'].includes(t.format)?[0]:[])].includes(b.choice))return json({error:'Choose a valid result.'},400);
+  if(![m.a.id,m.b.id,...(['swiss','robin','elo'].includes(t.format)?[0]:[])].includes(b.choice))return json({error:'Choose a valid result.'},400);
   const other=me.id===m.a.id?m.b:m.a;
   let opponent=other.accountId;
   if(!opponent){const account=await db.prepare('SELECT id FROM accounts WHERE username=? AND disabled=0').bind(other.name.toLowerCase()).first<{id:string}>();opponent=account?.id;if(other.name.toLowerCase()==='admin')opponent='system-admin';}
@@ -34,6 +35,7 @@ export async function reportAction(request:Request){
  if(!resolving&&(b.action!=='confirm'||report.opponent!==user.id))return json({error:'Opponent confirmation or admin access is required.'},403);
  if(!resolving&&report.status!=='pending')return json({error:'An admin must resolve this dispute.'},409);
  const choice=resolving?b.choice:report.choice;try{t.choose(m.r,m.m,choice);}catch{return json({error:'Invalid result.'},400);}
+ if(t.format==='elo'){try{const saved=await commitElo(t.data(),row.revision,false,{id,status:report.status});return saved?json({success:true}):json({error:'Tournament or ratings changed. Refresh and try again.'},409);}catch(error){return json({error:error instanceof Error?error.message:'Could not save Elo.'},400);}}
  const batch=await db.batch([
   db.prepare("UPDATE tournaments SET data=?,revision=revision+1,updated_at=? WHERE id='main' AND revision=? AND EXISTS(SELECT 1 FROM match_reports WHERE id=? AND status=?) RETURNING revision").bind(JSON.stringify(t.data()),Date.now(),row.revision,id,report.status),
   db.prepare("UPDATE match_reports SET status='accepted' WHERE id=? AND EXISTS(SELECT 1 FROM tournaments WHERE id='main' AND revision=?)").bind(id,row.revision+1),

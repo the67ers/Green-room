@@ -1,16 +1,24 @@
 import { currentUser, database, derivePassword, json, randomHex, readJson, sameOrigin } from '../../../lib/tournament-service';
+import {ratings} from '../../../lib/elo-service';
 export const dynamic='force-dynamic';
 const projection='id,COALESCE(display_username,username) AS username,email,role,disabled,created_at';
 export async function GET(request:Request){
   const user=await currentUser(request);if(user?.role!=='admin')return json({error:'Admin access is required.'},403);
   const rows=await database().prepare(`SELECT ${projection} FROM accounts ORDER BY username`).all();
-  return json({accounts:[{id:'system-admin',username:'admin',role:'admin',disabled:0,protected:true},...rows.results],currentUserId:user.id});
+  const values=await ratings();return json({accounts:[{id:'system-admin',username:'admin',role:'admin',disabled:0,protected:true},...rows.results].map((a:any)=>({...a,elo:values.get(a.id)??400})),currentUserId:user.id});
 }
 async function mutate(request:Request,method:string){
   if(!sameOrigin(request))return json({error:'Invalid origin.'},403);
   const user=await currentUser(request);if(user?.role!=='admin')return json({error:'Admin access is required.'},403);
   const db=database();let body;
   try{body=await readJson(request,5000);}catch{return json({error:'Enter valid account details.'},400);}
+  if(method==='PATCH'&&body.elo!==undefined){
+    if(!Number.isInteger(body.elo)||body.elo<0||body.elo>10000||typeof body.id!=='string'||Object.keys(body).some(k=>!['id','elo'].includes(k)))return json({error:'Elo must be a whole number from 0 to 10,000. Save other changes separately.'},400);
+    const target=body.id==='system-admin'?{role:'admin'}:await db.prepare('SELECT role FROM accounts WHERE id=?').bind(body.id).first<{role:string}>();
+    if(!target)return json({error:'Account not found.'},404);
+    if(target.role==='admin'&&!user.protected)return json({error:'Only the original admin can change an admin rating.'},403);
+    await db.prepare('INSERT INTO account_ratings (account_id,elo) VALUES (?,?) ON CONFLICT(account_id) DO UPDATE SET elo=excluded.elo').bind(body.id,body.elo).run();return json({success:true});
+  }
   const passwordValid=(p:unknown)=>typeof p==='string'&&p.length>=8&&p.length<=200;
   if(method==='POST'){
     const displayUsername=typeof body.username==='string'?body.username.trim():'';

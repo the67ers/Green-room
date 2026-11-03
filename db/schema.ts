@@ -1,4 +1,7 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+export const accountRatings=sqliteTable('account_ratings',{
+  accountId:text('account_id').primaryKey(),elo:integer('elo').notNull().default(400),
+});
 export const matchReports=sqliteTable('match_reports',{
   id:text('id').primaryKey(), revision:integer('revision').notNull(), matchKey:text('match_key').notNull(),
   reporter:text('reporter').notNull(), opponent:text('opponent').notNull(), choice:integer('choice').notNull(),
