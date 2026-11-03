@@ -58,5 +58,13 @@ try{
  const finalUsers=await list();assert.equal(finalUsers.reduce((sum,u)=>sum+u.elo,0),(afterRoundOne.reduce((sum,p)=>sum+p[1],0)));
  assert.equal(finalUsers.find(u=>u.id===a.id).elo,380);assert.equal(finalUsers.find(u=>u.id===b.id).elo,420);
  s=await state();assert.deepEqual(Object.keys(s.tournament.eloLedger).sort(),['0-0','0-1']);
+ // Full-size rounds use a small fixed number of SQL parameters and writes.
+ await db.batch(Array.from({length:100},(_,i)=>db.prepare("INSERT INTO accounts (id,username,role,disabled,password_hash,salt,created_at) VALUES (?,?,'viewer',0,'test','test',0)").bind('large'+i,'large'+i)));
+ t=new Tournament(Array.from({length:100},(_,i)=>'large'+i),'100 rated players',false,'elo');
+ assert.equal((await call('/api/tournament','PUT',{revision:s.revision,tournament:t.data(),archiveCurrent:true},root)).status,200);
+ s=await state();t=Tournament.restore(s.tournament);for(const m of t.rounds()[0])t.choose(0,m.m,m.a.id);
+ assert.equal((await call('/api/tournament','PUT',{revision:s.revision,tournament:t.data()},root)).status,200);
+ s=await state();assert.equal(s.tournament.players.length,100);assert.equal(Object.keys(s.tournament.eloLedger).length,50);
+ assert.equal(s.tournament.players.reduce((sum,p)=>sum+p.elo,0),40000);
  console.log('PASS: exact Elo examples, defaults, account authorization, confirmed reports, repeated saves, concurrency, undo, new tournaments, archive persistence and replay prevention.');
 }finally{await mf.dispose();}
