@@ -1,0 +1,1 @@
+ALTER TABLE `account_ratings` ADD `games` integer;
