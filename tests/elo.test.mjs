@@ -1,10 +1,18 @@
 import assert from 'node:assert/strict';
 import {Tournament} from '../lib/tournament.js';
-import {eloDelta,winPoints,ratedChanges} from '../lib/elo-formula.js';
+import {expectedScore,ratedChanges} from '../lib/elo-formula.js';
 import {createRequire} from 'node:module';
 import {readFile,readdir} from 'node:fs/promises';
-assert.equal(winPoints(300,500),80);assert.equal(winPoints(900,1000),40);assert.equal(winPoints(400,400),20);assert.equal(eloDelta(400,400,0),0);assert.equal(winPoints(100,2000),100);
-assert.deepEqual(ratedChanges(900,1000,1,false,2),{aDelta:42,bDelta:-38});assert.deepEqual(ratedChanges(900,1000,1,false,4),{aDelta:44,bDelta:-36});assert.deepEqual(ratedChanges(400,400,1,true,4),{aDelta:50,bDelta:-50});
+assert.equal(expectedScore(1600,2000),1/11);
+assert.deepEqual(ratedChanges(1600,2000,1),{aDelta:36,bDelta:-36});
+assert.deepEqual(ratedChanges(1600,2000,0),{aDelta:16,bDelta:-16});
+assert.deepEqual(ratedChanges(2000,1600,0),{aDelta:-16,bDelta:16});
+assert.deepEqual(ratedChanges(400,400,0),{aDelta:0,bDelta:0});
+assert.deepEqual(ratedChanges(400,400,1,true),{aDelta:50,bDelta:-50});
+assert.deepEqual(ratedChanges(400,400,-1,true),{aDelta:-50,bDelta:50});
+assert.deepEqual(ratedChanges(400,400,1),{aDelta:20,bDelta:-20});
+assert.deepEqual(ratedChanges(5,400,-1),{aDelta:-4,bDelta:4});
+assert.deepEqual(ratedChanges(3,400,-1),{aDelta:-3,bDelta:3});
 const require=createRequire(import.meta.url),workerRequire=createRequire(require.resolve('wrangler/package.json'));
 const {Miniflare}=workerRequire('miniflare'),{build}=workerRequire('esbuild');
 const bundle=await build({entryPoints:['tests/api.worker.ts'],bundle:true,write:false,format:'esm',platform:'neutral',external:['cloudflare:workers']});
@@ -29,21 +37,21 @@ try{
  assert.equal((await call('/api/tournament','POST',{action:'submit',revision:s.revision,matchKey:'0-0',choice:1},alpha)).status,200);
  assert.equal((await list()).find(u=>u.id===a.id).elo,300);
  assert.equal((await call('/api/tournament','POST',{action:'confirm',revision:s.revision,matchKey:'0-0'},beta)).status,200);
- s=await state();let effect=s.tournament.eloLedger['0-0'];assert([-4,-2,2,4].includes(effect.shift));users=await list();assert.equal(users.find(u=>u.id===a.id).elo,380+effect.shift);assert.equal(users.find(u=>u.id===b.id).elo,420+effect.shift);const firstRated=380+effect.shift;
- s=await state();assert.equal(s.tournament.players[0].elo,firstRated);
- assert.equal((await call('/api/tournament','PUT',{revision:s.revision,tournament:s.tournament},root)).status,200);assert.equal((await list()).find(u=>u.id===a.id).elo,firstRated);
+ s=await state();const effect=s.tournament.eloLedger['0-0'];assert.equal(effect.aDelta,30);assert.equal(effect.bDelta,-30);users=await list();assert.equal(users.find(u=>u.id===a.id).elo,330);assert.equal(users.find(u=>u.id===b.id).elo,470);
+ assert.equal(s.tournament.players[0].elo,330);
+ assert.equal((await call('/api/tournament','PUT',{revision:s.revision,tournament:s.tournament},root)).status,200);assert.equal((await list()).find(u=>u.id===a.id).elo,330);
  await set(a.id,900);await set(b.id,1000);s=await state();t=new Tournament(['Alpha','Beta'],'Second',false,'elo');
  assert.equal((await call('/api/tournament','PUT',{revision:s.revision,tournament:t.data(),archiveCurrent:true},root)).status,200);
  s=await state();t=Tournament.restore(s.tournament);t.choose(0,0,1);
  const race=await Promise.all([call('/api/tournament','PUT',{revision:s.revision,tournament:t.data()},root),call('/api/tournament','PUT',{revision:s.revision,tournament:t.data()},root)]);assert.deepEqual(race.map(r=>r.status).sort(),[200,409]);
- s=await state();effect=s.tournament.eloLedger['0-0'];users=await list();assert.equal(users.find(u=>u.id===a.id).elo,940+effect.shift);assert.equal(users.find(u=>u.id===b.id).elo,960+effect.shift);
+ users=await list();assert.equal(users.find(u=>u.id===a.id).elo,926);assert.equal(users.find(u=>u.id===b.id).elo,974);
  s=await state();const undo={...s.tournament,results:{}};assert.equal((await call('/api/tournament','PUT',{revision:s.revision,tournament:undo},root)).status,200);
  users=await list();assert.equal(users.find(u=>u.id===a.id).elo,900);assert.equal(users.find(u=>u.id===b.id).elo,1000);
  s=await state();t=Tournament.restore(s.tournament);t.choose(0,0,2);assert.equal((await call('/api/tournament','PUT',{revision:s.revision,tournament:t.data()},root)).status,200);
- s=await state();effect=s.tournament.eloLedger['0-0'];users=await list();assert.equal(users.find(u=>u.id===a.id).elo,890+effect.shift);assert.equal(users.find(u=>u.id===b.id).elo,1010+effect.shift);const corrected=890+effect.shift;
+ users=await list();assert.equal(users.find(u=>u.id===a.id).elo,886);assert.equal(users.find(u=>u.id===b.id).elo,1014);
  s=await state();assert.equal((await call('/api/tournament','PUT',{revision:s.revision,tournament:s.tournament,archiveCurrent:true},root)).status,400);
  assert.equal((await call('/api/tournament','DELETE',{revision:s.revision,checkinId:null},root)).status,200);
- assert.equal((await list()).find(u=>u.id===a.id).elo,corrected);
+ assert.equal((await list()).find(u=>u.id===a.id).elo,886);
  // Changing an early-round result reverses ratings for the cleared later round.
  for(const username of ['Gamma','Delta'])assert.equal((await call('/api/accounts','POST',{username,password:'player-password',role:'viewer'},root)).status,201);
  for(const u of await list())if(!u.protected)await set(u.id,400);
@@ -57,7 +65,7 @@ try{
  s=await state();t=Tournament.restore(s.tournament);const first=t.rounds()[0][0];t.choose(0,0,first.b.id);
  assert.equal((await call('/api/tournament','PUT',{revision:s.revision,tournament:t.data()},root)).status,200);
  const finalUsers=await list();assert.equal(finalUsers.reduce((sum,u)=>sum+u.elo,0),(afterRoundOne.reduce((sum,p)=>sum+p[1],0)));
- s=await state();effect=s.tournament.eloLedger['0-0'];assert.equal(finalUsers.find(u=>u.id===a.id).elo,380+effect.shift);assert.equal(finalUsers.find(u=>u.id===b.id).elo,420+effect.shift);
+ assert.equal(finalUsers.find(u=>u.id===a.id).elo,380);assert.equal(finalUsers.find(u=>u.id===b.id).elo,420);
  s=await state();assert.deepEqual(Object.keys(s.tournament.eloLedger).sort(),['0-0','0-1']);
  // Full-size rounds use a small fixed number of SQL parameters and writes.
  await db.batch(Array.from({length:100},(_,i)=>db.prepare("INSERT INTO accounts (id,username,role,disabled,password_hash,salt,created_at) VALUES (?,?,'viewer',0,'test','test',0)").bind('large'+i,'large'+i)));
@@ -73,7 +81,7 @@ try{
  assert.equal((await call('/api/tournament','PUT',{revision:s.revision,tournament:t.data(),archiveCurrent:true},root)).status,200);
  s=await state();t=Tournament.restore(s.tournament);t.choose(0,0,1);
  assert.equal((await call('/api/tournament','PUT',{revision:s.revision,tournament:t.data()},root)).status,200);
- s=await state();assert.equal(s.tournament.eloLedger['0-0'].firstGame,false);assert(s.tournament.players[0].elo>=416&&s.tournament.players[0].elo<=424);
+ s=await state();assert.equal(s.tournament.eloLedger['0-0'].firstGame,false);assert.equal(s.tournament.players[0].elo,420);
  assert.equal((await db.prepare("SELECT games FROM account_ratings WHERE account_id='large0'").first()).games,2);
- console.log('PASS: saved random variation, first-game 50-point bonus, legacy game counts, defaults, account authorization, confirmed reports, repeated saves, concurrency, undo, new tournaments, archive persistence and replay prevention.');
+ console.log('PASS: expected score and deterministic rating changes, first-game K factor, legacy game counts, defaults, account authorization, confirmed reports, repeated saves, concurrency, undo, new tournaments, archive persistence and replay prevention.');
 }finally{await mf.dispose();}

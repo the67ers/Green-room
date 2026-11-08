@@ -29,11 +29,10 @@ export async function commitElo(next:any,revision:number,newEvent=false,report?:
   const a=m.a.accountId,b=m.b.accountId,prior=oldLedger[m.key],same=prior&&prior.a===a&&prior.b===b;
   const aBefore=same?prior.aBefore:current(a),bBefore=same?prior.bBefore:current(b),aGames=same?(prior.aGames??Math.max(0,games.get(a)??0)):(games.get(a)??0),bGames=same?(prior.bGames??Math.max(0,games.get(b)??0)):(games.get(b)??0);
   const firstGame=same?(prior.firstGame===true):(aGames===0&&bGames===0);
-  const shift=same?(prior.shift??0):[-4,-2,2,4][crypto.getRandomValues(new Uint32Array(1))[0]%4];
   const outcome=m.draw?0:m.winner.id===m.a.id?1:-1;
-  const {aDelta,bDelta}=ratedChanges(aBefore,bBefore,outcome,firstGame,shift);
+  const {aDelta,bDelta}=ratedChanges(aBefore,bBefore,outcome,firstGame);
   values.set(a,current(a)+aDelta);values.set(b,current(b)+bDelta);games.set(a,(games.get(a)??0)+1);games.set(b,(games.get(b)??0)+1);
-  ledger[m.key]={a,b,aBefore,bBefore,aGames,bGames,firstGame,shift,aDelta,bDelta,choice:next.results[m.key]};
+  ledger[m.key]={a,b,aBefore,bBefore,aGames,bGames,firstGame,aDelta,bDelta,choice:next.results[m.key]};
  }
  for(const id of used)if(current(id)<0)throw Error('This correction would make a rating negative after an admin adjustment. Adjust the account rating first.');
  next.eloLedger=ledger;next.eloWrite=crypto.randomUUID();next.players=next.players.map((p:any)=>({...p,elo:current(p.accountId)}));
