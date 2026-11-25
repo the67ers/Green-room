@@ -4,7 +4,9 @@ import * as history from '../app/api/history/route';
 import * as admin from '../app/api/admin/route';
 import * as accounts from '../app/api/accounts/route';
 import * as tournament from '../app/api/tournament/route';
+import * as settings from '../app/api/settings/route';
 export default {async fetch(request: Request){
+  if(new URL(request.url).pathname==='/api/settings')return request.method==='PATCH'?settings.PATCH(request):new Response('Method not allowed',{status:405});
   if(new URL(request.url).pathname==='/api/signup')return request.method==='POST'?signup.POST(request):new Response('Method not allowed',{status:405});
   const routes: Record<string,(request:Request)=>Promise<Response>> = new URL(request.url).pathname==='/api/admin'
     ? {GET:admin.GET,POST:admin.POST,DELETE:admin.DELETE}

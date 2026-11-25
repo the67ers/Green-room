@@ -1,6 +1,7 @@
 import {finalizeCheckin,checkinState} from '../../../lib/checkin-service';
 import {commitElo,hydrateElo,ratings} from '../../../lib/elo-service';
 import {reportState,reportAction} from '../../../lib/match-report-service';
+import { getWorkspaceSettings } from '../../../lib/workspace-settings';
 export const POST=reportAction;
 import { currentUser, database, isAdmin, json, readJson, sameOrigin, validateTournament } from '../../../lib/tournament-service';
 export const dynamic='force-dynamic';
@@ -10,7 +11,12 @@ export async function GET(request: Request) {
   const user=await currentUser(request);
   const raw=row?JSON.parse(row.data):null,t=raw?.format==='elo'?await hydrateElo(raw):raw;
   const accountElo=user?(await ratings()).get(user.id)??400:null;
-  return json({...t?await reportState(t,row!.revision,user):{playerId:null,reports:[]},checkin:await checkinState(user?.id),user:user?{...user,elo:accountElo}:null,tournament:t,revision:row?.revision||0,admin:user?.role==='admin'});
+  const [reports, checkin, settings] = await Promise.all([
+    t ? reportState(t, row!.revision, user) : { playerId: null, reports: [] },
+    checkinState(user?.id),
+    getWorkspaceSettings(),
+  ]);
+  return json({...reports,checkin,settings,user:user?{...user,elo:accountElo}:null,tournament:t,revision:row?.revision||0,admin:user?.role==='admin'});
 }
 export async function PUT(request: Request) {
   if(!sameOrigin(request))return json({error:'This request must come from the tournament app.'},403);

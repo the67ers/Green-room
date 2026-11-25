@@ -1,4 +1,12 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+export const workspaceSettings = sqliteTable('workspace_settings', {
+  id: integer('id').primaryKey(),
+  glassMode: integer('glass_mode', { mode: 'boolean' }).notNull().default(false),
+  regularK: integer('regular_k').notNull().default(40),
+  firstGameK: integer('first_game_k').notNull().default(100),
+  revision: integer('revision').notNull().default(1),
+});
+
 export const accountRatings=sqliteTable('account_ratings',{
   accountId:text('account_id').primaryKey(),elo:integer('elo').notNull().default(400),games:integer('games'),
 });

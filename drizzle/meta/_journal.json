@@ -57,6 +57,13 @@
       "when": 1793728880182,
       "tag": "0007_famous_lilandra",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1795580509535,
+      "tag": "0008_workspace_settings",
+      "breakpoints": true
     }
   ]
 }

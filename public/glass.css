@@ -1,0 +1,361 @@
+/* The appearance control previews the glass material, even in the classic workspace. */
+:root {
+  --scene: linear-gradient(112deg, #f3f5fc 0%, #e0e5f5 47%, #c5cbe4 100%);
+  --scene-ink: #202c42;
+  --scene-muted: #45546d;
+  --scene-filter: none;
+}
+:root[data-theme="dark"] {
+  --scene: linear-gradient(112deg, #191e28 0%, #222736 49%, #303748 100%);
+  --scene-ink: #f1f4ff;
+  --scene-muted: #c1ccdd;
+  --scene-filter: invert(.88) hue-rotate(165deg) saturate(.75) brightness(1.12);
+}
+.appearance-setting {
+  isolation: isolate;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 16px;
+  min-height: 190px;
+  margin-bottom: 18px;
+  padding: 26px clamp(22px, 3.2vw, 48px);
+}
+:root .appearance-setting {
+  background: var(--scene);
+  color: var(--scene-ink);
+}
+.appearance-setting::before,
+:root[data-glass="on"] :is(.empty-tournament, .hero)::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: auto;
+  max-width: 100%;
+  aspect-ratio: 1.5;
+  z-index: -1;
+  pointer-events: none;
+  background: url("/glass-knight.webp") right center / auto 100% no-repeat;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 46%);
+  mask-image: linear-gradient(90deg, transparent, #000 46%);
+  filter: var(--scene-filter);
+}
+.appearance-copy { width: min(58%, 34rem); }
+.appearance-copy h2 { font-size: clamp(1.45rem, 2.1vw, 2.2rem); letter-spacing: -.05em; margin: 0 0 6px; }
+.appearance-copy label { cursor: pointer; }
+.appearance-copy .subtle { color: var(--scene-muted); font-size: .9375rem; line-height: 1.5; }
+.appearance-setting .glass-switch {
+  position: relative;
+  min-height: 44px;
+  gap: 10px;
+  font-size: .875rem;
+  color: var(--scene-ink);
+}
+.glass-switch input { inset: 0; width: 100%; height: 100%; margin: 0; z-index: 1; pointer-events: auto; cursor: pointer; }
+.glass-switch .switch-track {
+  flex-shrink: 0;
+  width: 46px;
+  height: 26px;
+  padding: 3px;
+  background: #788498;
+  box-shadow: inset 0 1px 3px #17233655;
+}
+.glass-switch .switch-track::after {
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(145deg, #fff 42%, #dce4f2);
+  box-shadow: 0 1px 3px #17233666, inset 0 1px #fff;
+}
+:root .glass-switch input:checked + .switch-track { background: #237059; }
+.glass-switch input:checked + .switch-track::after { transform: translateX(20px); }
+.elo-settings { margin-bottom: 18px; }
+.elo-settings > summary {
+  cursor: pointer; list-style: none; display: flex; align-items: center; gap: 14px;
+  min-height: 32px; font: 700 1rem Manrope, system-ui, sans-serif;
+}
+.elo-settings > summary::-webkit-details-marker { display: none; }
+.elo-settings > summary .subtle { margin-left: auto; font-size: .875rem; font-variant-numeric: tabular-nums; }
+.settings-chevron { width: 8px; height: 8px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); margin: -4px 5px 0 0; }
+.elo-settings[open] .settings-chevron { transform: rotate(225deg); margin-top: 4px; }
+.elo-settings #eloSettingsForm { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px 20px; }
+.elo-settings :is(.factor-note, .elo-equations) { grid-column: 1 / -1; }
+.elo-settings .field { margin: 0; }
+.elo-settings .field label { font-size: .875rem; }
+.elo-settings .field input { width: min(100%, 13rem); font-size: 1rem; }
+#firstGameRule { margin-top: 5px; }
+.elo-equations { border-left: 2px solid var(--line); padding-left: 13px; font-size: .875rem; line-height: 1.8; overflow-wrap: anywhere; }
+.elo-equations sup { font-size: .74em; }
+.elo-equations small { color: var(--muted); font-size: .8125rem; }
+#saveK { justify-self: start; }
+@media (max-width: 520px) {
+  .appearance-setting { min-height: 226px; padding: 20px; }
+  .appearance-copy { width: 60%; }
+  .appearance-setting::before { max-width: 62%; background-position: 77% center; }
+  .elo-settings #eloSettingsForm { grid-template-columns: minmax(0,1fr); }
+}
+
+/* Layered pearl and smoked glass share the same material geometry. */
+@media screen {
+  :root[data-glass="on"] {
+    --ink: #1d2c42;
+    --muted: #4c5b73;
+    --green: #185e4b;
+    --lime: #c5eee0;
+    --paper: #e4e9f4;
+    --white: #f8faff;
+    --soft: #e2e9f1;
+    --line: #79869d4d;
+    --rim: #fffffff2;
+    --rim-low: #8091ac70;
+    --shine: #ffffffb3;
+    --pane: linear-gradient(136deg, #ffffffbf 0%, #f7f9ff77 52%, #dce4f385 100%);
+    --dense: linear-gradient(140deg, #fffffff2, #edf2fbe6 74%, #dce4efe8);
+    --well: #c4d0df4a;
+    --row: #fbfdffba;
+    --canvas: #eaf0f8b3;
+    --grid-dot: #707f9b42;
+    --glass-button: linear-gradient(165deg, #ffffffed 0%, #edf1f9c9 60%, #cdd7e5bd 100%);
+    --jade: #185b48;
+    --jade-fill: linear-gradient(140deg, #e2f9f0, #bce1d4);
+    --jade-line: #598f7d91;
+    --solid-jade: linear-gradient(155deg, #337f69, #195749 74%);
+    --on-jade: #fff;
+    --danger: #8b3543;
+    --focus: #16735e;
+    --shadow: inset 0 1px 0 var(--shine), inset 1px 0 0 #ffffff42, 0 10px 32px -18px #3c4e7373, 0 1px 4px #52638012;
+    --sky: radial-gradient(ellipse at 5% 5%, #fbfcff 0%, transparent 40%),
+      radial-gradient(ellipse at 95% 0%, #c6ccee 0%, transparent 45%),
+      radial-gradient(ellipse at 0% 83%, #bcdbe5 0%, transparent 38%),
+      radial-gradient(ellipse at 85% 85%, #c5d7ef 0%, transparent 40%), #e5e8f3;
+    --flare: #ffffff9c;
+    color-scheme: light;
+  }
+  :root[data-glass="on"][data-theme="dark"] {
+    --ink: #f0f4fc;
+    --muted: #bac6d7;
+    --green: #a4ddc9;
+    --lime: #c5efe0;
+    --paper: #10131a;
+    --white: #222833;
+    --soft: #303744;
+    --line: #9dadc149;
+    --rim: #cdd9eb5e;
+    --rim-low: #72809655;
+    --shine: #f5f8ff30;
+    --pane: linear-gradient(139deg, #48536387 0%, #29303cca 49%, #1e2632b8 100%);
+    --dense: linear-gradient(142deg, #343d4bf7, #242b38f7 66%, #2d3744f7);
+    --well: #12182477;
+    --row: #27323ee8;
+    --canvas: #151c26cc;
+    --grid-dot: #b1c1d237;
+    --glass-button: linear-gradient(158deg, #505967ce, #303947da 62%, #242d3be8);
+    --jade: #c9f3e3;
+    --jade-fill: linear-gradient(145deg, #36594f, #204438);
+    --jade-line: #8cc9b0a1;
+    --solid-jade: linear-gradient(155deg, #b4e3d1, #7cb69e);
+    --on-jade: #102c24;
+    --danger: #ffb9c1;
+    --focus: #a0e3c9;
+    --shadow: inset 0 1px 0 var(--shine), inset 1px 0 0 #ffffff0c, 0 14px 36px -18px #000b, 0 1px 5px #0002;
+    --sky: radial-gradient(ellipse at 9% 5%, #373b48 0%, transparent 38%),
+      radial-gradient(ellipse at 95% 4%, #34384d 0%, transparent 42%),
+      radial-gradient(ellipse at 5% 89%, #20323a 0%, transparent 37%), #12151d;
+    --flare: #c5d8f82a;
+    color-scheme: dark;
+  }
+  :root[data-glass="on"] body {
+    min-height: 100vh;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 1rem;
+    isolation: isolate;
+  }
+  :root[data-glass="on"] body::before {
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(ellipse 70% 42% at 81% -24%, transparent 96%, var(--flare) 97%, transparent 99%),
+      radial-gradient(ellipse 86% 68% at -33% 100%, transparent 96.5%, var(--flare) 97.3%, transparent 98%),
+      var(--sky);
+  }
+  :root[data-glass="on"] :is(.topbar, .sidebar, .board-shell, .metric, .account-card, .checkin-panel,
+    .format-strip, .history-date-group, .history-empty, .tournament-card, .sk-board, .loading-side, .projector-grid > section) {
+    background: var(--pane);
+    border: 1px solid var(--rim); border-right-color: var(--rim-low); border-bottom-color: var(--rim-low);
+    border-radius: 22px; box-shadow: var(--shadow);
+  }
+  :root[data-glass="on"] :is(.topbar, .sidebar, .workspace-tabs, dialog, .dropdown, .theme-toggle) {
+    -webkit-backdrop-filter: blur(18px) saturate(125%); backdrop-filter: blur(18px) saturate(125%);
+  }
+  :root[data-glass="on"] :is(.metric, .account-card, .checkin-panel, .board-shell, .projector-grid > section) {
+    -webkit-backdrop-filter: blur(11px); backdrop-filter: blur(11px);
+  }
+  :root[data-glass="on"] .topbar {
+    max-width: 1600px; width: calc(100% - 48px); min-height: 68px; height: auto;
+    padding: 12px 23px; margin: 16px auto 0; border-radius: 24px;
+  }
+  :root[data-glass="on"] .brand { font-size: 1.55rem; letter-spacing: -.075em; }
+  :root[data-glass="on"] :is(.brand small, .sidebar-bottom .tip > strong, .page-head .eyebrow, .page-head .subtle, .breadcrumb) { display: none; }
+  :root[data-glass="on"] .brand-mark {
+    width: 39px; height: 39px; border-radius: 13px; color: #1c534b;
+    border: 1px solid #effbff; background: linear-gradient(145deg,#fff,#c4d4df 46%,#f2f8fc 70%,#a3b6c5);
+    box-shadow: inset 0 1px 2px #fff, 0 2px 4px #263a5129;
+  }
+  :root[data-glass="on"] .brand-mark svg { width: 22px; height: 22px; }
+  :root[data-glass="on"] .topright { gap: 12px; }
+  :root[data-glass="on"] :is(.app, .loading-screen) {
+    max-width: 1600px; width: calc(100% - 48px); margin: 20px auto 0;
+    grid-template-columns: clamp(196px, 18vw, 252px) minmax(0, 1fr); gap: clamp(16px, 2.2vw, 34px);
+    min-height: calc(100vh - 110px);
+  }
+  :root[data-glass="on"] :is(.main, .loading-main) { padding: 0 0 62px; }
+  :root[data-glass="on"] :is(.sidebar, .loading-side) { align-self: start; padding: 24px 14px; gap: 22px; }
+  :root[data-glass="on"] .sidebar-bottom { padding: 0; }
+  :root[data-glass="on"] .tip { margin: 0; }
+  :root[data-glass="on"] .tip > span { display: none; }
+  :root[data-glass="on"] .label, :root[data-glass="on"] .eyebrow { color: var(--muted); font-size: .75rem; letter-spacing: .12em; }
+  :root[data-glass="on"] .navitem { color: var(--ink); border-radius: 12px; font-size: .9375rem; }
+  :root[data-glass="on"] .workspace-tabs {
+    border: 1px solid var(--rim); border-bottom-color: var(--rim-low); border-radius: 18px;
+    padding: 5px; gap: 4px; margin: 0 0 24px; background: var(--well); box-shadow: inset 0 1px var(--shine);
+  }
+  :root[data-glass="on"] .workspace-tab { color: var(--muted); padding: 10px 16px; border-radius: 13px; font-size: .875rem; }
+  :root[data-glass="on"] .workspace-tab.admin-tools-tab { margin-left: auto; }
+  :root[data-glass="on"] :is(.navitem.active, .workspace-tab.selected, .segmented button.selected, .draw-btn.selected) {
+    color: var(--jade); background: var(--jade-fill); box-shadow: inset 0 0 0 1px var(--jade-line), inset 0 2px 1px var(--shine), 0 2px 4px #20353f12;
+  }
+  :root[data-glass="on"] h1 { font-size: clamp(2rem,3.2vw,3.4rem); font-weight: 600; letter-spacing: -.065em; line-height: 1.06; }
+  :root[data-glass="on"] .subtle { font-size: .875rem; color: var(--muted); line-height: 1.55; }
+  :root[data-glass="on"] .page-head { align-items: center; }
+  :root[data-glass="on"] .header-actions { padding-top: 0; }
+  :root[data-glass="on"] :is(.appearance-setting, .hero, .empty-tournament) {
+    position: relative; isolation: isolate; overflow: hidden; color: var(--scene-ink);
+    background: var(--scene); border: 1px solid var(--rim); border-radius: 25px; box-shadow: var(--shadow);
+  }
+  :root[data-glass="on"] :is(.appearance-setting, .hero, .empty-tournament)::after {
+    content: ""; position: absolute; inset: 0; width: auto; height: auto; border: 0;
+    border-radius: inherit; pointer-events: none;
+    box-shadow: inset 1px 1px 1px 0 #fffe, inset -1px -1px 1px 0 #8199bd80, inset 0 -2px 3px 0 #ceecfa70;
+  }
+  :root[data-glass="on"] .appearance-copy .subtle { color: var(--scene-muted); }
+  :root[data-glass="on"] .empty-tournament {
+    align-items: flex-start; justify-content: center; text-align: left;
+    min-height: clamp(310px, 35vw, 490px); padding: clamp(24px, 4vw, 64px); gap: 20px;
+  }
+  :root[data-glass="on"] .empty-tournament h1 {
+    max-width: min(54%, 12ch); margin: 0; font: 550 clamp(2rem, 4.3vw, 4.55rem)/1.05 Manrope, system-ui, sans-serif;
+    letter-spacing: -.065em; color: var(--scene-ink); overflow-wrap: normal;
+  }
+  :root[data-glass="on"] .empty-tournament > span {
+    width: 48px; height: 48px; border: 1px solid var(--rim); border-radius: 16px;
+    background: var(--glass-button); color: var(--ink); box-shadow: var(--shadow);
+  }
+  :root[data-glass="on"] .empty-tournament > span svg { width: 26px; height: 26px; }
+  :root[data-glass="on"] .hero { min-height: clamp(170px, 19vw, 275px); padding: 20px clamp(26px, 4vw, 58px); }
+  :root[data-glass="on"] :is(.hero > div:first-child, .hero-trophy) { display: none; }
+  :root[data-glass="on"] .hero-art { padding: 0; }
+  :root[data-glass="on"] .hero-stat { display: block; border: 0; padding: 0; }
+  :root[data-glass="on"] .hero-stat strong {
+    color: var(--scene-ink); font: 500 clamp(3.45rem, 6vw, 6.5rem)/1 Manrope,system-ui,sans-serif;
+    font-variant-numeric: tabular-nums; letter-spacing: -.09em;
+  }
+  :root[data-glass="on"] .hero-stat small { color: var(--scene-muted); font-size: .9375rem; }
+  :root[data-glass="on"] :is(.metric .caption, .tools-heading .subtle, .format-strip p, .checkin-names, .loading-message, .count,
+    .capacity-toggle, .checkin-clock, .history-date-group > summary, .list-round h3, .region-label, .split-title,
+    .round-heading, .zoom, .board-footer, .main-footer, .empty, .match-top, .standings th, .standings td small,
+    .account-table th, .account-table td small, .roster-row small, .split-title small, .region-label small) { color: var(--muted); }
+  :root[data-glass="on"] :is(.metric .caption, .field label) { font-size: .875rem; }
+  :root[data-glass="on"] .metric .value { font-weight: 600; font-variant-numeric: tabular-nums; }
+  :root[data-glass="on"] :is(.btn, .iconbtn, .search input, .round-filter, .account-table select, .field input, .field select, .field textarea) {
+    color: var(--ink); border: 1px solid var(--rim-low); border-top-color: var(--rim);
+    background: var(--glass-button); border-radius: 12px; box-shadow: inset 0 1px 0 var(--shine);
+  }
+  :root[data-glass="on"] .btn { border-radius: 999px; font-size: .875rem; }
+  :root[data-glass="on"] :is(.btn.primary, .btn.lime) { background: var(--solid-jade); border-color: var(--jade-line); color: var(--on-jade); }
+  :root[data-glass="on"] .btn.danger, :root[data-glass="on"] .error { color: var(--danger); }
+  :root[data-glass="on"] .btn.destructive { color: #fff; background: #8d3745; border-color: #ac5363; }
+  :root[data-glass="on"] .btn.destructive:hover { background: #702c38; }
+  :root[data-glass="on"] :is(.btn:not(.danger):not(.destructive), .iconbtn, .navitem, .workspace-tab, .segmented button, .dropdown button):not(:disabled):hover {
+    color: var(--jade); background: var(--jade-fill);
+  }
+  :root[data-glass="on"] .theme-toggle { border-radius: 999px; box-shadow: var(--shadow); z-index: 18; }
+  :root[data-glass="on"] :is(button, input, select, textarea, a, summary):focus-visible,
+  :root[data-glass="on"] .capacity-toggle input:focus-visible + .switch-track { outline: 3px solid var(--focus); outline-offset: 3px; }
+  :root[data-glass="on"] .field :is(input,textarea):focus { border-color: var(--jade-line); box-shadow: none; }
+  :root[data-glass="on"] select option { background: var(--white); color: var(--ink); }
+  :root[data-glass="on"] :is(.board-subbar, .match-top, .notice, .tip, .segmented, .standings-section, .modal-footer) {
+    background: var(--well); border-color: var(--line); color: var(--ink);
+  }
+  :root[data-glass="on"] :is(.pill, .role-chip, .status-tag, .tournament-card .badge, .account-status, .round-heading small,
+    .avatar, .metric .mi, .action-symbol, .welcome-emblem, .history-emblem, .history-date-icon) {
+    color: var(--jade); background: var(--jade-fill); border-radius: 9px;
+  }
+  :root[data-glass="on"] :is(.role-chip, .status-tag, .account-status) { border-radius: 999px; font-size: .75rem; }
+  :root[data-glass="on"] .account-status.inactive { color: var(--danger); background: var(--well); }
+  :root[data-glass="on"] .dot { background: var(--jade-line); }
+  :root[data-glass="on"] :is(.board-toolbar, .board-subbar, .board-footer, .standings td, .account-table td, .history-player, .player + .player) { border-color: var(--line); }
+  :root[data-glass="on"] .board-viewport {
+    background-color: var(--canvas); background-image: radial-gradient(var(--grid-dot) .9px,transparent 1px);
+    background-size: 16px 16px; scrollbar-color: var(--rim-low) var(--canvas);
+  }
+  :root[data-glass="on"] :is(.match, .history-card, .history-match) {
+    background: var(--row); color: var(--ink); border: 1px solid var(--rim-low); border-top-color: var(--rim);
+    border-radius: 12px; box-shadow: inset 0 1px var(--shine), 0 3px 8px #1c2c400e;
+  }
+  :root[data-glass="on"] :is(.match.ready, .match.final) { border-color: var(--jade-line); }
+  :root[data-glass="on"] .player { background: transparent; color: var(--ink); font-size: .8125rem; }
+  :root[data-glass="on"] :is(.player .seed, .player.loser, .player.pending, .draw-btn) { color: var(--muted); }
+  :root[data-glass="on"] :is(.player.drawn, .draw-btn) { background: var(--well); }
+  :root[data-glass="on"] :is(.player.winner, .player.hit, .player:not(:disabled):hover, .history-player.winner, .champion-banner) {
+    color: var(--jade); background: var(--jade-fill); border-color: var(--jade-line);
+  }
+  :root[data-glass="on"] :is(.player .check, .champion-banner small) { color: var(--jade); }
+  :root[data-glass="on"] .player.hit { box-shadow: inset 0 0 0 2px var(--focus); }
+  :root[data-glass="on"] .connector { stroke: var(--rim-low); }
+  :root[data-glass="on"] .connector.won { stroke: var(--jade-line); }
+  :root[data-glass="on"] :is(dialog, .dropdown) {
+    border: 1px solid var(--rim); border-bottom-color: var(--rim-low); color: var(--ink);
+    background: var(--dense); border-radius: 22px; box-shadow: var(--shadow), 0 24px 70px #15223e37;
+  }
+  :root[data-glass="on"] dialog::backdrop { background: #15243b63; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  :root[data-glass="on"] .dropdown button { background: transparent; color: var(--ink); }
+  :root[data-glass="on"] .toast { color: var(--on-jade); background: var(--solid-jade); border-color: var(--jade-line); border-radius: 14px; }
+  :root[data-glass="on"] .skeleton { background: linear-gradient(100deg, var(--well) 30%, var(--shine) 48%, var(--well) 66%); background-size: 250% 100%; }
+  :root[data-glass="on"] #projectorPanel { color: var(--ink); background: transparent; }
+  :root[data-glass="on"] .projector-grid > section { padding: clamp(16px, 2.6vw, 38px); min-width: 0; }
+  :root[data-glass="on"] :is(.projector-grid h2, .projector-grid p) { overflow-wrap: anywhere; }
+  :root[data-glass="on"] .board-focus .board-shell { background: var(--dense); }
+}
+@media screen and (max-width: 800px) {
+  :root[data-glass="on"] .topbar { width: calc(100% - 20px); margin-top: 10px; padding: 9px 12px; border-radius: 20px; min-height: 60px; }
+  :root[data-glass="on"] :is(.app, .loading-screen) { width: calc(100% - 24px); margin-top: 12px; }
+  :root[data-glass="on"] .workspace-tabs { margin-bottom: 18px; }
+  :root[data-glass="on"] .workspace-tab { padding: 9px 12px; }
+  :root[data-glass="on"] .theme-toggle { left: 12px; bottom: 12px; }
+}
+@media screen and (max-width: 600px) {
+  :root[data-glass="on"] .topright { gap: 5px; }
+  :root[data-glass="on"] .topbar .brand { font-size: 1.2rem; gap: 5px; }
+  :root[data-glass="on"] .brand-mark { width: 29px; height: 31px; border-radius: 10px; }
+  :root[data-glass="on"] .topbar .btn { font-size: .75rem; padding: 7px 9px; }
+  :root[data-glass="on"] .workspace-tab { flex: 1 1 auto; font-size: .8125rem; padding: 9px 8px; }
+  :root[data-glass="on"] .empty-tournament { min-height: 300px; gap: 14px; padding: 22px; }
+  :root[data-glass="on"] .empty-tournament h1 { font-size: clamp(1.68rem, 6.5vw, 2.3rem); max-width: 53%; }
+  :root[data-glass="on"] :is(.hero, .empty-tournament)::before { max-width: 65%; background-position: 76% center; }
+  :root[data-glass="on"] .metric { padding: 13px; gap: 5px; }
+  :root[data-glass="on"] .metric .mi { width: 25px; height: 25px; flex-shrink: 0; }
+}
+@media screen and (prefers-reduced-transparency: reduce) {
+  :root[data-glass="on"] { --pane: var(--white); --dense: var(--white); --row: var(--white); --well: var(--soft); --glass-button: var(--white); }
+  :root[data-glass="on"] dialog::backdrop,
+  :root[data-glass="on"] :is(.topbar, .sidebar, .workspace-tabs, dialog, .dropdown, .theme-toggle, .metric, .account-card, .checkin-panel, .board-shell, .projector-grid > section) { -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-glass="on"] :is(button, .skeleton, .switch-track, .switch-track::after) { animation: none; transition: none; }
+}
+@media (forced-colors: active) {
+  .glass-switch .switch-track { border: 1px solid ButtonText; }
+  .glass-switch .switch-track::after { background: ButtonText; }
+  .glass-switch input:checked + .switch-track { background: Highlight; }
+}

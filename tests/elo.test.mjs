@@ -83,5 +83,43 @@ try{
  assert.equal((await call('/api/tournament','PUT',{revision:s.revision,tournament:t.data()},root)).status,200);
  s=await state();assert.equal(s.tournament.eloLedger['0-0'].firstGame,false);assert.equal(s.tournament.players[0].elo,420);
  assert.equal((await db.prepare("SELECT games FROM account_ratings WHERE account_id='large0'").first()).games,2);
+ // Workspace appearance is public, but only admins can edit event settings.
+ const patchSettings = (change, cookie = root) => call('/api/settings','PATCH',change,cookie);
+ assert.deepEqual((await state('')).settings, {glassMode:false, regularK:40, firstGameK:100, revision:0});
+ for (const cookie of ['', alpha]) {
+   assert.equal((await patchSettings({glassMode:true},cookie)).status,403);
+ }
+ assert.equal((await patchSettings({regularK:2.5,firstGameK:0})).status,400);
+ const settingsSaves = await Promise.all([
+   patchSettings({glassMode:true}), patchSettings({regularK:64, firstGameK:120})
+ ]);
+ assert(settingsSaves.every(response => response.ok));
+ assert.deepEqual((await state('')).settings,{glassMode:true,regularK:64,firstGameK:120,revision:2});
+ assert.equal((await state(alpha)).settings.glassMode,true);
+ for (const username of ['FirstWhite','FirstBlack']) {
+   assert.equal((await call('/api/accounts','POST',{username,password:'player-password',role:'viewer'},root)).status,201);
+ }
+ async function saveRatedGame(start, choice) {
+   let live = await state();
+   if (start) {
+     const fresh = new Tournament(['FirstWhite','FirstBlack'],'Rated settings',false,'elo');
+     assert.equal((await call('/api/tournament','PUT',{revision:live.revision,tournament:fresh.data(),archiveCurrent:true},root)).status,200);
+     live = await state();
+   }
+   const game = Tournament.restore(live.tournament);
+   game.choose(0,0,choice);
+   assert.equal((await call('/api/tournament','PUT',{revision:live.revision,tournament:game.data()},root)).status,200);
+   return (await state()).tournament.players.map(p=>p.elo);
+ }
+ assert.deepEqual(await saveRatedGame(true,1),[460,340]);
+ assert.equal((await patchSettings({regularK:80,firstGameK:150})).status,200);
+ assert.deepEqual(await saveRatedGame(false,2),[340,460]);
+ for (const user of (await list()).filter(u => ['FirstWhite','FirstBlack'].includes(u.username))) await set(user.id,400);
+ assert.deepEqual(await saveRatedGame(true,1),[440,360]);
+ assert.equal((await patchSettings({glassMode:false})).status,200);
+ const restored = (await state('')).settings;
+ assert.equal(restored.glassMode,false);
+ assert.equal(restored.regularK,80);
+ console.log('PASS: admin-only shared Glass mode, concurrent settings edits, custom Elo factors and corrections using the original factors.');
  console.log('PASS: expected score and deterministic rating changes, first-game K factor, legacy game counts, defaults, account authorization, confirmed reports, repeated saves, concurrency, undo, new tournaments, archive persistence and replay prevention.');
 }finally{await mf.dispose();}
